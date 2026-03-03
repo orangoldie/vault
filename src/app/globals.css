@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --font-sans: var(--font-inter);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* Warm off-white palette from design system */
+  --background: hsl(40 20% 98%);
+  --foreground: hsl(30 10% 15%);
+  --surface: hsl(40 15% 95%);
+  --surface-hover: hsl(40 12% 91%);
+  --border: hsl(40 10% 87%);
+  --input: hsl(40 10% 87%);
+  --ring: hsl(220 55% 50%);
+
+  /* Text */
+  --primary: hsl(30 10% 15%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(40 15% 95%);
+  --secondary-foreground: hsl(30 10% 15%);
+  --muted: hsl(40 15% 95%);
+  --muted-foreground: hsl(30 4% 62%);
+
+  /* Accent (blue) */
+  --accent: hsl(220 55% 50%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  /* Cards */
+  --card: hsl(40 15% 95%);
+  --card-foreground: hsl(30 10% 15%);
+  --popover: hsl(40 20% 98%);
+  --popover-foreground: hsl(30 10% 15%);
+
+  /* Status */
+  --success: hsl(152 45% 42%);
+  --success-surface: hsl(152 35% 95%);
+  --warning: hsl(38 80% 52%);
+  --warning-surface: hsl(38 60% 95%);
+  --destructive: hsl(0 72% 51%);
+
+  /* Sidebar (unused but required by shadcn) */
+  --sidebar: hsl(40 20% 98%);
+  --sidebar-foreground: hsl(30 10% 15%);
+  --sidebar-primary: hsl(220 55% 50%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(40 15% 95%);
+  --sidebar-accent-foreground: hsl(30 10% 15%);
+  --sidebar-border: hsl(40 10% 87%);
+  --sidebar-ring: hsl(220 55% 50%);
+}
+
+.dark {
+  --background: hsl(30 8% 9%);
+  --foreground: hsl(35 15% 92%);
+  --surface: hsl(30 6% 13%);
+  --surface-hover: hsl(30 6% 17%);
+  --border: hsl(30 5% 20%);
+  --input: hsl(30 5% 20%);
+  --ring: hsl(220 55% 60%);
+
+  --primary: hsl(35 15% 92%);
+  --primary-foreground: hsl(30 8% 9%);
+  --secondary: hsl(30 6% 13%);
+  --secondary-foreground: hsl(35 15% 92%);
+  --muted: hsl(30 6% 13%);
+  --muted-foreground: hsl(30 5% 40%);
+
+  --accent: hsl(220 55% 60%);
+  --accent-foreground: hsl(0 0% 100%);
+
+  --card: hsl(30 6% 13%);
+  --card-foreground: hsl(35 15% 92%);
+  --popover: hsl(30 6% 13%);
+  --popover-foreground: hsl(35 15% 92%);
+
+  --success: hsl(152 40% 50%);
+  --success-surface: hsl(152 20% 14%);
+  --warning: hsl(38 70% 55%);
+  --warning-surface: hsl(38 30% 14%);
+  --destructive: hsl(0 62% 50%);
+
+  --sidebar: hsl(30 6% 13%);
+  --sidebar-foreground: hsl(35 15% 92%);
+  --sidebar-primary: hsl(220 55% 60%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(30 6% 17%);
+  --sidebar-accent-foreground: hsl(35 15% 92%);
+  --sidebar-border: hsl(30 5% 20%);
+  --sidebar-ring: hsl(220 55% 60%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

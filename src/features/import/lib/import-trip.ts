@@ -1,0 +1,120 @@
+import { extractZip } from "./extract-zip"
+import { parseTrip } from "./parse-trip"
+import { collectPhotos } from "./collect-photos"
+import { saveTrip, saveSteps, savePhoto, getPhotosByTrip, getPhotosByIds, deletePhotos } from "@/stores/db"
+import { writePhoto, deletePhotoFiles } from "@/stores/photo-storage"
+import { ImportError, type ImportProgress, type ImportResult } from "@/types/import"
+
+const SIZE_WARNING_THRESHOLD_MB = 500
+
+export interface ImportOptions {
+  onProgress: (progress: ImportProgress) => void
+}
+
+export function shouldWarnAboutSize(file: File): number | null {
+  const sizeMb = Math.round(file.size / (1024 * 1024))
+  return sizeMb > SIZE_WARNING_THRESHOLD_MB ? sizeMb : null
+}
+
+export async function importTrip(
+  file: File,
+  { onProgress }: ImportOptions
+): Promise<ImportResult> {
+  // Phase 1: Extract ZIP (10% of progress — fast)
+  onProgress({ phase: "extracting", percent: 0, detail: "Extracting ZIP..." })
+
+  const entries = await extractZip(file)
+
+  onProgress({ phase: "extracting", percent: 5, detail: "Extracting ZIP..." })
+
+  // Phase 2: Parse trip data (another 5% — fast)
+  onProgress({ phase: "reading", percent: 8, detail: "Reading trip data..." })
+
+  const { trip, steps, tripDirPath } = parseTrip(entries)
+
+  onProgress({ phase: "reading", percent: 10, detail: "Reading trip data..." })
+
+  // Collect photo entries before storing
+  const photoEntries = collectPhotos(entries, tripDirPath, trip.id)
+
+  // Remember existing photo IDs for cleanup after successful import
+  const existingPhotoIds = await getPhotosByTrip(trip.id)
+
+  // Phase 3: Store data (90% — photos are the slow part)
+  // Save trip + steps first (fast, uses put for upsert)
+  trip.photoCount = photoEntries.length
+  await saveTrip(trip)
+  await saveSteps(steps)
+
+  const totalPhotos = photoEntries.length
+  const newPhotoIds = new Set<string>()
+
+  for (let i = 0; i < photoEntries.length; i++) {
+    const entry = photoEntries[i]
+    const photoId = `${entry.tripId}-${entry.stepId}-${entry.filename}`
+    newPhotoIds.add(photoId)
+
+    try {
+      const data = entry.data.slice()
+
+      // Write binary data to OPFS
+      await writePhoto(entry.tripId, entry.stepId, entry.filename, data)
+
+      // Write metadata to IndexedDB
+      try {
+        await savePhoto({
+          id: photoId,
+          tripId: entry.tripId,
+          stepId: entry.stepId,
+          filename: entry.filename,
+        })
+      } catch (err) {
+        // Best-effort cleanup of the OPFS file we just wrote
+        await deletePhotoFiles([{ tripId: entry.tripId, stepId: entry.stepId, filename: entry.filename }]).catch(() => {})
+        throw err
+      }
+    } catch (err) {
+      if (
+        err instanceof DOMException &&
+        (err.name === "QuotaExceededError" ||
+          err.message.includes("quota"))
+      ) {
+        throw new ImportError(
+          "QUOTA_EXCEEDED",
+          "Not enough storage space to import this trip"
+        )
+      }
+      throw err
+    }
+
+    const percent = 10 + Math.round(((i + 1) / totalPhotos) * 90)
+    onProgress({
+      phase: "storing",
+      percent,
+      detail: `Importing photos\u2026 ${i + 1} of ${totalPhotos}`,
+    })
+  }
+
+  // If no photos, jump to 100%
+  if (totalPhotos === 0) {
+    onProgress({ phase: "storing", percent: 100, detail: "Done" })
+  }
+
+  // Clean up orphaned photos from a previous import of this trip
+  const orphanedIds = existingPhotoIds.filter((id) => !newPhotoIds.has(id))
+  if (orphanedIds.length > 0) {
+    // Fetch full metadata so we can delete OPFS files by path
+    const orphanedPhotos = await getPhotosByIds(orphanedIds)
+    await deletePhotoFiles(orphanedPhotos)
+    await deletePhotos(orphanedIds)
+  }
+
+  return {
+    tripName: trip.name,
+    stepCount: steps.length,
+    photoCount: totalPhotos,
+    startDate: trip.startDate,
+    endDate: trip.endDate,
+    totalKm: trip.totalKm,
+  }
+}

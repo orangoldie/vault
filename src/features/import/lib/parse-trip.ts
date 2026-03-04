@@ -1,5 +1,5 @@
-import type { RawTrip } from "@/types/polarsteps-export"
-import type { Trip, Step } from "@/types/trip"
+import type { RawTrip } from "@/types/travel-export"
+import type { Trip, Chapter } from "@/types/trip"
 import { ImportError } from "@/types/import"
 import type { ZipEntries } from "./extract-zip"
 
@@ -59,7 +59,7 @@ function resolveCoverPhotoId(
   if (!raw.cover_photo?.uuid) return null
 
   // The cover_photo.path in the export is an S3 URL, not a local path.
-  // We need to find the matching photo file by UUID in the local step directories.
+  // We need to find the matching photo file by UUID in the local chapter directories.
   const coverUuid = raw.cover_photo.uuid
 
   for (const filePath of Object.keys(entries)) {
@@ -68,13 +68,13 @@ function resolveCoverPhotoId(
 
     // Photo filenames are UUID-based like: uuid_uuid.jpg.jpg
     if (filePath.includes(coverUuid)) {
-      // Extract step info to build the photo ID
+      // Extract chapter info to build the photo ID
       const relPath = filePath.slice(tripDirPath.length)
-      const stepMatch = relPath.match(/^([^/]+)_(\d+)\/photos\/(.+)$/)
-      if (stepMatch) {
-        const stepId = parseInt(stepMatch[2], 10)
-        const filename = stepMatch[3]
-        return `${raw.id}-${stepId}-${filename}`
+      const chapterMatch = relPath.match(/^([^/]+)_(\d+)\/photos\/(.+)$/)
+      if (chapterMatch) {
+        const chapterId = parseInt(chapterMatch[2], 10)
+        const filename = chapterMatch[3]
+        return `${raw.id}-${chapterId}-${filename}`
       }
     }
   }
@@ -84,7 +84,7 @@ function resolveCoverPhotoId(
 
 export interface ParsedTripData {
   trip: Trip
-  steps: Step[]
+  chapters: Chapter[]
   tripDirPath: string
 }
 
@@ -94,7 +94,7 @@ export function parseTrip(entries: ZipEntries): ParsedTripData {
   const raw = selected.tripJson
 
   if (!raw.all_steps || raw.all_steps.length === 0) {
-    throw new ImportError("EMPTY_TRIP", "This trip has no steps")
+    throw new ImportError("EMPTY_TRIP", "This trip has no chapters")
   }
 
   const coverPhotoId = resolveCoverPhotoId(raw, selected.path, entries)
@@ -107,14 +107,14 @@ export function parseTrip(entries: ZipEntries): ParsedTripData {
     endDate: raw.end_date,
     summary: sanitizeText(raw.summary),
     coverPhotoId,
-    stepCount: raw.step_count ?? raw.all_steps.length,
+    chapterCount: raw.step_count ?? raw.all_steps.length,
     photoCount: 0,
     totalKm: raw.total_km ?? 0,
     uuid: raw.uuid,
     importedAt: Date.now(),
   }
 
-  const steps: Step[] = raw.all_steps.map((rawStep) => ({
+  const chapters: Chapter[] = raw.all_steps.map((rawStep) => ({
     id: rawStep.id,
     tripId: raw.id,
     displayName: sanitizeText(rawStep.display_name),
@@ -135,5 +135,5 @@ export function parseTrip(entries: ZipEntries): ParsedTripData {
     uuid: rawStep.uuid,
   }))
 
-  return { trip, steps, tripDirPath: selected.path }
+  return { trip, chapters, tripDirPath: selected.path }
 }

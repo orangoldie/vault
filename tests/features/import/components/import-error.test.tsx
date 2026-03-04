@@ -30,7 +30,7 @@ describe("ImportErrorView", () => {
     ["INVALID_ZIP", /doesn.t appear to be a ZIP file/],
     ["MISSING_TRIP_JSON", /No trip data was found/],
     ["MALFORMED_JSON", /trip data in this file appears to be damaged/],
-    ["EMPTY_TRIP", /doesn.t contain any steps or photos/],
+    ["EMPTY_TRIP", /doesn.t contain any chapters or photos/],
     ["QUOTA_EXCEEDED", /isn.t enough storage space/],
     ["FILE_TOO_LARGE", /file may be too large to process/],
     ["UNKNOWN", /Something went wrong/],

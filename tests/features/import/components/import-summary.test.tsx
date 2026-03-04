@@ -7,7 +7,7 @@ import type { ImportResult } from "@/types/import"
 
 const mockResult: ImportResult = {
   tripName: "Summer in Europe",
-  stepCount: 56,
+  chapterCount: 56,
   photoCount: 213,
   startDate: 1739059200, // Feb 9, 2025
   endDate: 1749513600, // Jun 10, 2025
@@ -31,12 +31,12 @@ describe("ImportSummary", () => {
     expect(screen.getByText("imported successfully")).toBeInTheDocument()
   })
 
-  it("renders step count", () => {
+  it("renders chapter count", () => {
     render(
       <ImportSummary result={mockResult} onImportAnother={vi.fn()} onDone={vi.fn()} />
     )
 
-    expect(screen.getByText("56 steps")).toBeInTheDocument()
+    expect(screen.getByText("56 chapters")).toBeInTheDocument()
   })
 
   it("renders photo count", () => {

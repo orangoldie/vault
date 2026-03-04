@@ -11,12 +11,12 @@
 | Acceptance Criterion | Status | Notes |
 |---|---|---|
 | Photo blobs stored in OPFS, not IndexedDB | Pass | `writePhoto()` writes to OPFS; `savePhoto()` stores metadata only |
-| Photo metadata remains in IndexedDB with same query capabilities | Pass | Same indexes (tripId, stepId) preserved |
-| Importing stores each photo as individual OPFS file, organized by trip/step | Pass | `photos/<tripId>/<stepId>/<filename>` structure |
+| Photo metadata remains in IndexedDB with same query capabilities | Pass | Same indexes (tripId, chapterId) preserved |
+| Importing stores each photo as individual OPFS file, organized by trip/chapter | Pass | `photos/<tripId>/<chapterId>/<filename>` structure |
 | Deleting a trip removes IndexedDB metadata + OPFS files | Pass | `deleteTrip()` calls `deletePhotosByTrip()` |
 | Re-import cleans up orphaned OPFS files | Pass | Fetches orphan metadata via `getPhotosByIds()`, then `deletePhotoFiles()` |
 | Quota error shows clear message | Pass | Catches `QuotaExceededError` and message-based detection |
-| Function exists to retrieve photo by metadata | Pass | `readPhoto(tripId, stepId, filename)` returns `Blob \| null` |
+| Function exists to retrieve photo by metadata | Pass | `readPhoto(tripId, chapterId, filename)` returns `Blob \| null` |
 | Graceful handling of missing OPFS file | Pass | `readPhoto()` returns `null` on any error |
 | All existing import behavior preserved | Pass | Progress reporting, error handling, upsert semantics unchanged |
 | **Unit tests** | **Fail** | **No unit tests exist.** Plan specifies `photo-storage.test.ts`, `db.test.ts`, and `import-trip.test.ts` — none were created |
@@ -36,6 +36,7 @@
 
 - Schema upgrade logic (`oldVersion < 1` / `oldVersion >= 1 && oldVersion < 2`) is correct and handles both fresh installs and upgrades.
 - `getPhotosByIds()` correctly fetches metadata before orphan deletion (avoiding ID string parsing as the plan specifies).
+
 - `deleteTrip()` properly cleans up OPFS after the IndexedDB transaction completes.
 
 ### `src/features/import/lib/import-trip.ts` — Good
@@ -64,16 +65,16 @@ If `writePhoto()` succeeds but `savePhoto()` throws, the photo binary exists in 
 
 ```typescript
 try {
-  await writePhoto(entry.tripId, entry.stepId, entry.filename, data)
+  await writePhoto(entry.tripId, entry.chapterId, entry.filename, data)
 } catch (err) {
   // ...quota handling...
 }
 
 try {
-  await savePhoto({ id: photoId, tripId: entry.tripId, stepId: entry.stepId, filename: entry.filename })
+  await savePhoto({ id: photoId, tripId: entry.tripId, chapterId: entry.chapterId, filename: entry.filename })
 } catch (err) {
   // Best-effort cleanup of the OPFS file we just wrote
-  await deletePhotoFiles([{ tripId: entry.tripId, stepId: entry.stepId, filename: entry.filename }]).catch(() => {})
+  await deletePhotoFiles([{ tripId: entry.tripId, chapterId: entry.chapterId, filename: entry.filename }]).catch(() => {})
   throw err
 }
 ```

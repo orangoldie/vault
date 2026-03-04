@@ -1,7 +1,7 @@
 import { extractZip } from "./extract-zip"
 import { parseTrip } from "./parse-trip"
 import { collectPhotos } from "./collect-photos"
-import { saveTrip, saveSteps, savePhoto, getPhotosByTrip, getPhotosByIds, deletePhotos } from "@/stores/db"
+import { saveTrip, saveChapters, savePhoto, getPhotosByTrip, getPhotosByIds, deletePhotos } from "@/stores/db"
 import { writePhoto, deletePhotoFiles } from "@/stores/photo-storage"
 import { ImportError, type ImportProgress, type ImportResult } from "@/types/import"
 
@@ -30,7 +30,7 @@ export async function importTrip(
   // Phase 2: Parse trip data (another 5% — fast)
   onProgress({ phase: "reading", percent: 8, detail: "Reading trip data..." })
 
-  const { trip, steps, tripDirPath } = parseTrip(entries)
+  const { trip, chapters, tripDirPath } = parseTrip(entries)
 
   onProgress({ phase: "reading", percent: 10, detail: "Reading trip data..." })
 
@@ -41,36 +41,36 @@ export async function importTrip(
   const existingPhotoIds = await getPhotosByTrip(trip.id)
 
   // Phase 3: Store data (90% — photos are the slow part)
-  // Save trip + steps first (fast, uses put for upsert)
+  // Save trip + chapters first (fast, uses put for upsert)
   trip.photoCount = photoEntries.length
   await saveTrip(trip)
-  await saveSteps(steps)
+  await saveChapters(chapters)
 
   const totalPhotos = photoEntries.length
   const newPhotoIds = new Set<string>()
 
   for (let i = 0; i < photoEntries.length; i++) {
     const entry = photoEntries[i]
-    const photoId = `${entry.tripId}-${entry.stepId}-${entry.filename}`
+    const photoId = `${entry.tripId}-${entry.chapterId}-${entry.filename}`
     newPhotoIds.add(photoId)
 
     try {
       const data = entry.data.slice()
 
       // Write binary data to OPFS
-      await writePhoto(entry.tripId, entry.stepId, entry.filename, data)
+      await writePhoto(entry.tripId, entry.chapterId, entry.filename, data)
 
       // Write metadata to IndexedDB
       try {
         await savePhoto({
           id: photoId,
           tripId: entry.tripId,
-          stepId: entry.stepId,
+          chapterId: entry.chapterId,
           filename: entry.filename,
         })
       } catch (err) {
         // Best-effort cleanup of the OPFS file we just wrote
-        await deletePhotoFiles([{ tripId: entry.tripId, stepId: entry.stepId, filename: entry.filename }]).catch(() => {})
+        await deletePhotoFiles([{ tripId: entry.tripId, chapterId: entry.chapterId, filename: entry.filename }]).catch(() => {})
         throw err
       }
     } catch (err) {
@@ -111,7 +111,7 @@ export async function importTrip(
 
   return {
     tripName: trip.name,
-    stepCount: steps.length,
+    chapterCount: chapters.length,
     photoCount: totalPhotos,
     startDate: trip.startDate,
     endDate: trip.endDate,

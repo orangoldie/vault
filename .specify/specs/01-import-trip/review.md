@@ -1,4 +1,4 @@
-# 01 — Import a Polarsteps Trip Export — Code Review
+# 01 — Import a Trip Export — Code Review
 
 ## Summary
 
@@ -16,11 +16,11 @@ This is a solid, well-structured first feature. The code is clean, well-typed, a
 | ZIP extraction in-browser | ✅ | fflate `unzipSync` |
 | Multi-trip: earliest `start_date` | ✅ | With alphabetical fallback |
 | Parse `trip.json` metadata | ✅ | |
-| Parse steps from `all_steps[]` | ✅ | |
-| Read photos from step dirs | ✅ | |
+| Parse chapters from `all_steps[]` | ✅ | |
+| Read photos from chapter dirs | ✅ | |
 | Persist to IndexedDB | ✅ | |
 | Progress indicator | ✅ | Determinate, 3-phase |
-| Success summary | ✅ | Trip name, steps, photos, dates, km |
+| Success summary | ✅ | Trip name, chapters, photos, dates, km |
 | Error messages (invalid ZIP, missing trip.json, etc.) | ✅ | All 7 codes covered |
 | Storage quota error | ✅ | Catches `QuotaExceededError` |
 | Safe upsert (re-import) | ✅ | Old data preserved on failure, orphans cleaned |
@@ -43,6 +43,7 @@ This is a solid, well-structured first feature. The code is clean, well-typed, a
 - **Clean type system**: Discriminated union for `ImportState`, separate raw/domain types, proper error class with typed codes. The types are the backbone of this feature and they're well-designed.
 - **Safe re-import strategy**: Using `put` (upsert) instead of delete-then-insert means a failed mid-import never destroys existing data. Orphan cleanup only runs after full success. This is exactly right.
 - **Solid HTML sanitization**: `sanitizeText` strips tags at parse-time, not render-time. The risk surface is small because data never touches `dangerouslySetInnerHTML`.
+
 - **Good accessibility foundations**: `aria-live` on progress, `dir="auto"` + `<bdi>` on user text, `aria-label` on hidden file input, focus management via ref.
 - **Reduced motion support**: Full implementation — detects `prefers-reduced-motion` and swaps Framer Motion variants to instant transitions.
 - **Test coverage on logic**: The lib functions and IndexedDB store have meaningful tests that verify behavior (not implementation). Orphan cleanup, failure recovery, and multi-trip selection are all tested.
@@ -79,10 +80,10 @@ This is a solid, well-structured first feature. The code is clean, well-typed, a
 > **Fix:** Extract to a shared utility in `src/lib/` or `src/features/import/lib/`.
 
 **M5. Trip list photo count shows wrong data**
-`trip-list.tsx:59` — The trip card shows `"imported"` or `"no photos"` based on `trip.stepCount > 0`, which has nothing to do with photos. The `Trip` type doesn't store a photo count, so there's no way to display it from the trip record alone.
+`trip-list.tsx:59` — The trip card shows `"imported"` or `"no photos"` based on `trip.chapterCount > 0`, which has nothing to do with photos. The `Trip` type doesn't store a photo count, so there's no way to display it from the trip record alone.
 
 > **File:** `src/features/import/components/trip-list.tsx:59`
-> **Fix:** Either add `photoCount` to the `Trip` interface (stored at import time) or query the photo store count from IndexedDB. Using `stepCount` as a proxy is misleading.
+> **Fix:** Either add `photoCount` to the `Trip` interface (stored at import time) or query the photo store count from IndexedDB. Using `chapterCount` as a proxy is misleading.
 
 **M6. `handleFileSelected` has a stale closure over `startImport`**
 `import-flow.tsx:66-75` — `handleFileSelected` is wrapped in `useCallback` with an empty dependency array, but it calls `startImport` which is a regular function that captures current state. The `useCallback` memoization means `startImport` could reference stale closures. While it works today because `startImport` doesn't read state synchronously, it's fragile.

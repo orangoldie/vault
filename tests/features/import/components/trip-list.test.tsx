@@ -14,7 +14,7 @@ const mockTrips: Trip[] = [
     endDate: 1723680000, // Aug 15, 2024
     summary: "A great summer trip",
     coverPhotoId: null,
-    stepCount: 32,
+    chapterCount: 32,
     photoCount: 148,
     totalKm: 5000,
     uuid: "trip-1-uuid",
@@ -28,7 +28,7 @@ const mockTrips: Trip[] = [
     endDate: 1749513600, // Jun 10, 2025
     summary: "",
     coverPhotoId: null,
-    stepCount: 56,
+    chapterCount: 56,
     photoCount: 213,
     totalKm: 23175,
     uuid: "trip-2-uuid",
@@ -40,7 +40,7 @@ describe("TripList", () => {
   it("renders the app name heading", () => {
     render(<TripList trips={mockTrips} onImport={vi.fn()} />)
 
-    expect(screen.getByText("Polarsteps Vault")).toBeInTheDocument()
+    expect(screen.getByText("Journey Vault")).toBeInTheDocument()
   })
 
   it("renders all trips", () => {
@@ -50,11 +50,11 @@ describe("TripList", () => {
     expect(screen.getByText("אלי ואורן במזרח")).toBeInTheDocument()
   })
 
-  it("renders step count for each trip", () => {
+  it("renders chapter count for each trip", () => {
     render(<TripList trips={mockTrips} onImport={vi.fn()} />)
 
-    expect(screen.getByText("32 steps")).toBeInTheDocument()
-    expect(screen.getByText("56 steps")).toBeInTheDocument()
+    expect(screen.getByText("32 chapters")).toBeInTheDocument()
+    expect(screen.getByText("56 chapters")).toBeInTheDocument()
   })
 
   it("renders photo count for each trip", () => {
@@ -99,7 +99,7 @@ describe("TripList", () => {
   it("renders an empty list when no trips", () => {
     render(<TripList trips={[]} onImport={vi.fn()} />)
 
-    expect(screen.getByText("Polarsteps Vault")).toBeInTheDocument()
+    expect(screen.getByText("Journey Vault")).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /Import Trip/i })
     ).toBeInTheDocument()

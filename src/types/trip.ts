@@ -6,14 +6,14 @@ export interface Trip {
   endDate: number
   summary: string
   coverPhotoId: string | null
-  stepCount: number
+  chapterCount: number
   photoCount: number
   totalKm: number
   uuid: string
   importedAt: number
 }
 
-export interface StepLocation {
+export interface ChapterLocation {
   name: string
   detail: string
   fullDetail: string
@@ -22,7 +22,7 @@ export interface StepLocation {
   lon: number
 }
 
-export interface Step {
+export interface Chapter {
   id: number
   tripId: number
   displayName: string
@@ -30,7 +30,7 @@ export interface Step {
   slug: string
   startTime: number
   endTime: number | null
-  location: StepLocation
+  location: ChapterLocation
   weatherCondition: string | null
   weatherTemperature: number | null
   uuid: string
@@ -39,6 +39,6 @@ export interface Step {
 export interface Photo {
   id: string
   tripId: number
-  stepId: number
+  chapterId: number
   filename: string
 }

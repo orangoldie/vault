@@ -12,13 +12,13 @@ interface ImportErrorProps {
 
 const ERROR_MESSAGES: Record<ImportErrorCode, string> = {
   INVALID_ZIP:
-    "This doesn\u2019t appear to be a ZIP file. Please select the ZIP file you downloaded from Polarsteps.",
+    "This doesn\u2019t appear to be a ZIP file. Please select the ZIP file you downloaded from your travel app.",
   MISSING_TRIP_JSON:
-    "No trip data was found in this file. Make sure you\u2019re selecting a Polarsteps export ZIP (it should contain a trip.json file).",
+    "No trip data was found in this file. Make sure you\u2019re selecting a travel export ZIP (it should contain a trip.json file).",
   MALFORMED_JSON:
-    "The trip data in this file appears to be damaged. Try re-downloading your export from Polarsteps.",
+    "The trip data in this file appears to be damaged. Try re-downloading your export from your travel app.",
   EMPTY_TRIP:
-    "This trip doesn\u2019t contain any steps or photos to import.",
+    "This trip doesn\u2019t contain any chapters or photos to import.",
   QUOTA_EXCEEDED:
     "There isn\u2019t enough storage space to import this trip. Try closing other tabs or clearing browser data to free up space.",
   FILE_TOO_LARGE:

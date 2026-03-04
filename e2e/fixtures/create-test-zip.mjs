@@ -37,7 +37,7 @@ const tripJson = JSON.stringify({
       },
       weather_condition: "sunny",
       weather_temperature: 32,
-      uuid: "step-1-uuid",
+      uuid: "chapter-1-uuid",
     },
     {
       id: 102,
@@ -59,7 +59,7 @@ const tripJson = JSON.stringify({
       },
       weather_condition: "cloudy",
       weather_temperature: 28,
-      uuid: "step-2-uuid",
+      uuid: "chapter-2-uuid",
     },
   ],
 })

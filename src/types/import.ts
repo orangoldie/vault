@@ -17,7 +17,7 @@ export interface ImportProgress {
 
 export interface ImportResult {
   tripName: string
-  stepCount: number
+  chapterCount: number
   photoCount: number
   startDate: number
   endDate: number

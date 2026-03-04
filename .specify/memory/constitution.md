@@ -1,8 +1,8 @@
-# Polarsteps Vault — Project Constitution
+# Journey Vault — Project Constitution
 
 ## What Is This?
 
-Polarsteps Vault is a digital archive and album tool that preserves and beautifully presents Polarsteps travel memories. It imports Polarsteps data exports and transforms them into a browsable, visually rich personal travel archive.
+Journey Vault is a digital archive and album tool that preserves and beautifully presents travel memories. It imports travel data exports and transforms them into a browsable, visually rich personal travel archive.
 
 ## Target Users
 
@@ -119,6 +119,16 @@ vault/
 ├── .specify/             # Spec system memory
 └── .claude/              # Claude Code config
 ```
+
+## Terminology
+
+This app imports data from a third-party travel app but is **not affiliated with or endorsed by any travel platform**. To avoid trademark issues:
+
+- **Never** use the word "Polarsteps" or "polar steps" anywhere in the codebase — not in UI text, code, comments, types, file names, or docs.
+- **Never** use "step" to refer to a location/stop within a trip. Use **"chapter"** instead (e.g., `Chapter`, `chapterId`, `chapterCount`, "3 chapters").
+- "step" is acceptable only in its generic programming sense (e.g., "next step in the process").
+- The app name is **Journey Vault**. The IndexedDB database is `journey-vault`. The npm package is `journey-vault`.
+- Refer to imported data generically: "travel export", "travel data", "your travel app" — never name the source platform.
 
 ## Hard Constraints
 

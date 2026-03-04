@@ -17,9 +17,9 @@
 | Data | Storage Layer | Purpose |
 |---|---|---|
 | Trip metadata | IndexedDB `trips` store | Structured queries |
-| Step metadata | IndexedDB `steps` store | Structured queries |
-| Photo **metadata** | IndexedDB `photos` store (minus `blob` field) | Lookup by tripId/stepId |
-| Photo **binary data** | OPFS `photos/<tripId>/<stepId>/<filename>` | Blob storage & retrieval |
+| Chapter metadata | IndexedDB `chapters` store | Structured queries |
+| Photo **metadata** | IndexedDB `photos` store (minus `blob` field) | Lookup by tripId/chapterId |
+| Photo **binary data** | OPFS `photos/<tripId>/<chapterId>/<filename>` | Blob storage & retrieval |
 
 ### How It Fits Into the Existing System
 
@@ -38,9 +38,9 @@ No changes to: ZIP extraction, trip parsing, photo collection, import UI, progre
 
 ```typescript
 export interface Photo {
-  id: string        // "${tripId}-${stepId}-${filename}"
+  id: string        // "${tripId}-${chapterId}-${filename}"
   tripId: number
-  stepId: number
+  chapterId: number
   filename: string
   // blob field removed
 }
@@ -54,7 +54,7 @@ The `blob` field is removed from the `Photo` interface in `src/types/trip.ts`.
 <opfs-root>/
   photos/
     <tripId>/
-      <stepId>/
+      <chapterId>/
         <filename>    ← raw JPEG binary
 ```
 
@@ -64,7 +64,7 @@ No mapping table needed — the OPFS path is always derivable from the IndexedDB
 
 IndexedDB version goes from `1` → `2`. The upgrade handler:
 - Doesn't need to migrate data (per spec Decision #1 — no production users yet).
-- Deletes and recreates the `photos` store without the blob field (same indexes: `tripId`, `stepId`).
+- Deletes and recreates the `photos` store without the blob field (same indexes: `tripId`, `chapterId`).
 
 ---
 
@@ -78,10 +78,10 @@ Functions:
 
 | Function | Signature | Description |
 |---|---|---|
-| `writePhoto` | `(tripId: number, stepId: number, filename: string, data: Uint8Array) => Promise<void>` | Creates `photos/<tripId>/<stepId>/` dirs and writes the file via `createWritable()`. |
-| `readPhoto` | `(tripId: number, stepId: number, filename: string) => Promise<Blob \| null>` | Reads the file and returns as `Blob`, or `null` if missing. |
+| `writePhoto` | `(tripId: number, chapterId: number, filename: string, data: Uint8Array) => Promise<void>` | Creates `photos/<tripId>/<chapterId>/` dirs and writes the file via `createWritable()`. |
+| `readPhoto` | `(tripId: number, chapterId: number, filename: string) => Promise<Blob \| null>` | Reads the file and returns as `Blob`, or `null` if missing. |
 | `deletePhotosByTrip` | `(tripId: number) => Promise<void>` | Recursively removes the `photos/<tripId>/` directory. |
-| `deletePhotoFiles` | `(photos: Array<{ tripId: number; stepId: number; filename: string }>) => Promise<void>` | Deletes specific photo files (for orphan cleanup on re-import). |
+| `deletePhotoFiles` | `(photos: Array<{ tripId: number; chapterId: number; filename: string }>) => Promise<void>` | Deletes specific photo files (for orphan cleanup on re-import). |
 
 Internal helpers:
 - `getPhotosRoot()` — returns `photos/` directory handle (lazily cached).
@@ -92,7 +92,7 @@ Internal helpers:
 ### Step 2: Update `Photo` type — `src/types/trip.ts`
 
 - Remove the `blob` field from `Photo` interface.
-- The interface becomes the metadata-only shape: `{ id, tripId, stepId, filename }`.
+- The interface becomes the metadata-only shape: `{ id, tripId, chapterId, filename }`.
 
 ### Step 3: Bump IndexedDB schema — `src/stores/db.ts`
 
@@ -101,7 +101,7 @@ Internal helpers:
   - Delete the old `photos` store, recreate it with the same key and indexes but without blob storage (the schema type change handles this at the TypeScript level).
 - Update the `VaultDB` type to reflect the new `Photo` shape (no `blob`).
 - `savePhoto` now accepts metadata-only (no blob).
-- Add `getPhotosByIds(ids: string[])` to batch-fetch photo metadata records (needed by orphan cleanup to resolve tripId/stepId/filename before deleting OPFS files).
+- Add `getPhotosByIds(ids: string[])` to batch-fetch photo metadata records (needed by orphan cleanup to resolve tripId/chapterId/filename before deleting OPFS files).
 - Remove `blob` from any internal references.
 
 ### Step 4: Update import pipeline — `src/features/import/lib/import-trip.ts`
@@ -109,9 +109,9 @@ Internal helpers:
 Modify the photo storage loop (Phase 3):
 
 ```
-Before:  savePhoto({ id, tripId, stepId, filename, blob })
-After:   writePhoto(tripId, stepId, filename, data)   // OPFS
-         savePhoto({ id, tripId, stepId, filename })   // IndexedDB metadata
+Before:  savePhoto({ id, tripId, chapterId, filename, blob })
+After:   writePhoto(tripId, chapterId, filename, data)   // OPFS
+         savePhoto({ id, tripId, chapterId, filename })   // IndexedDB metadata
 ```
 
 - `writePhoto` is called first — if it throws `QuotaExceededError`, catch and rethrow as `ImportError("QUOTA_EXCEEDED", ...)`.
@@ -119,25 +119,25 @@ After:   writePhoto(tripId, stepId, filename, data)   // OPFS
 - Progress reporting stays identical.
 
 Update orphan cleanup:
-- After determining orphaned photo IDs, look up each orphan's metadata from IndexedDB (tripId, stepId, filename) and call `deletePhotoFiles()` to remove OPFS files, then `deletePhotos()` to remove IndexedDB metadata (existing behavior).
-- **Do not parse the photo ID string** to extract tripId/stepId/filename — filenames can contain hyphens, making split-based parsing unreliable. Instead, fetch the photo record from IndexedDB before deleting it.
+- After determining orphaned photo IDs, look up each orphan's metadata from IndexedDB (tripId, chapterId, filename) and call `deletePhotoFiles()` to remove OPFS files, then `deletePhotos()` to remove IndexedDB metadata (existing behavior).
+- **Do not parse the photo ID string** to extract tripId/chapterId/filename — filenames can contain hyphens, making split-based parsing unreliable. Instead, fetch the photo record from IndexedDB before deleting it.
 
 ### Step 5: Update trip deletion — `src/stores/db.ts`
 
 `deleteTrip(id)` must also remove OPFS files:
 
 ```
-Before:  delete trip + steps + photo metadata from IndexedDB
-After:   delete trip + steps + photo metadata from IndexedDB
+Before:  delete trip + chapters + photo metadata from IndexedDB
+After:   delete trip + chapters + photo metadata from IndexedDB
          + deletePhotosByTrip(id) from OPFS
 ```
 
 ### Step 6: Tests
 
 **Unit tests** (Vitest):
-- `src/stores/photo-storage.test.ts` — Mock OPFS APIs to test write/read/delete flows.
-- `src/stores/db.test.ts` — Test schema v2 upgrade. Test `savePhoto` without blob. Test `deleteTrip` calls OPFS cleanup.
-- `src/features/import/lib/import-trip.test.ts` — Test that import writes to both OPFS and IndexedDB. Test orphan cleanup deletes OPFS files. Test quota error handling.
+- `photo-storage.test.ts` — Mock OPFS APIs to test write/read/delete flows.
+- `db.test.ts` — Test schema v2 upgrade. Test `savePhoto` without blob. Test `deleteTrip` calls OPFS cleanup.
+- `import-trip.test.ts` — Test that import writes to both OPFS and IndexedDB. Test orphan cleanup deletes OPFS files. Test quota error handling.
 
 **E2E tests** (Playwright):
 - Existing `e2e/import-trip.spec.ts` tests should pass unchanged (user-facing behavior is identical).
@@ -153,9 +153,9 @@ After:   delete trip + steps + photo metadata from IndexedDB
 | `src/types/trip.ts` | **Modify** — Remove `blob` from `Photo` |
 | `src/stores/db.ts` | **Modify** — Schema v2, update `savePhoto`, add `getPhotosByIds`, update `deleteTrip` |
 | `src/features/import/lib/import-trip.ts` | **Modify** — Write photos to OPFS + metadata to IndexedDB |
-| `src/stores/photo-storage.test.ts` | **New** — Unit tests |
-| `src/stores/db.test.ts` | **New** — Unit tests |
-| `src/features/import/lib/import-trip.test.ts` | **New** — Unit tests |
+| `tests/stores/photo-storage.test.ts` | **New** — Unit tests |
+| `tests/stores/db.test.ts` | **New** — Unit tests |
+| `tests/features/import/lib/import-trip.test.ts` | **New** — Unit tests |
 
 ---
 

@@ -8,10 +8,10 @@ describe("ImportPrompt", () => {
   it("renders the app name and tagline", () => {
     render(<ImportPrompt onFileSelected={vi.fn()} />)
 
-    expect(screen.getByText("Polarsteps Vault")).toBeInTheDocument()
+    expect(screen.getByText("Journey Vault")).toBeInTheDocument()
     expect(screen.getByText("Your travels, your archive.")).toBeInTheDocument()
     expect(
-      screen.getByText(/Import your Polarsteps data export/)
+      screen.getByText(/Import your travel data export/)
     ).toBeInTheDocument()
   })
 
@@ -26,7 +26,7 @@ describe("ImportPrompt", () => {
   it("renders a hidden file input that accepts .zip files", () => {
     render(<ImportPrompt onFileSelected={vi.fn()} />)
 
-    const input = screen.getByLabelText("Select Polarsteps export ZIP file")
+    const input = screen.getByLabelText("Select travel export ZIP file")
     expect(input).toHaveAttribute("type", "file")
     expect(input).toHaveAttribute("accept", ".zip")
     expect(input).toHaveClass("hidden")
@@ -36,7 +36,7 @@ describe("ImportPrompt", () => {
     render(<ImportPrompt onFileSelected={vi.fn()} />)
 
     expect(
-      screen.getByText("Select your Polarsteps export ZIP file")
+      screen.getByText("Select your travel export ZIP file")
     ).toBeInTheDocument()
   })
 
@@ -45,7 +45,7 @@ describe("ImportPrompt", () => {
     render(<ImportPrompt onFileSelected={onFileSelected} />)
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["zip-content"], "export.zip", {
       type: "application/zip",
@@ -62,7 +62,7 @@ describe("ImportPrompt", () => {
     render(<ImportPrompt onFileSelected={onFileSelected} />)
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["zip"], "export.zip", { type: "application/zip" })
 
@@ -76,7 +76,7 @@ describe("ImportPrompt", () => {
     render(<ImportPrompt onFileSelected={onFileSelected} />)
 
     // Simulating no file selected — change event fires but files is empty
-    const input = screen.getByLabelText("Select Polarsteps export ZIP file")
+    const input = screen.getByLabelText("Select travel export ZIP file")
     input.dispatchEvent(new Event("change", { bubbles: true }))
 
     expect(onFileSelected).not.toHaveBeenCalled()

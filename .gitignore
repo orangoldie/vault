@@ -40,9 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local data (Polarsteps exports)
+# local data (travel exports)
 /data/
 
 # playwright
 /playwright-report/
 /test-results/
+
+# claude local settings
+.claude/settings.local.json

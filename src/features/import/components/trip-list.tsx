@@ -15,7 +15,7 @@ export function TripList({ trips, onImport }: TripListProps) {
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <h1 className="text-[1.875rem] font-semibold leading-[1.2] tracking-[-0.02em] text-primary">
-        Polarsteps Vault
+        Journey Vault
       </h1>
 
       <div className="flex w-full flex-col gap-3">
@@ -36,7 +36,7 @@ export function TripList({ trips, onImport }: TripListProps) {
             <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <MapPin className="size-3.5" />
-                {trip.stepCount} steps
+                {trip.chapterCount} chapters
               </span>
               <span className="flex items-center gap-1">
                 <ImageIcon className="size-3.5" />

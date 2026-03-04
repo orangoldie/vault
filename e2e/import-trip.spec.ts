@@ -10,7 +10,7 @@ test.describe("Import Trip Flow", () => {
     await page.waitForLoadState("domcontentloaded")
     await page.evaluate(async () => {
       await new Promise<void>((resolve) => {
-        const req = indexedDB.deleteDatabase("polarsteps-vault")
+        const req = indexedDB.deleteDatabase("journey-vault")
         req.onsuccess = () => resolve()
         req.onerror = () => resolve()
         req.onblocked = () => resolve()
@@ -29,7 +29,7 @@ test.describe("Import Trip Flow", () => {
   })
 
   test("shows the empty state on first visit", async ({ page }) => {
-    await expect(page.getByText("Polarsteps Vault")).toBeVisible()
+    await expect(page.getByText("Journey Vault")).toBeVisible()
     await expect(page.getByText("Your travels, your archive.")).toBeVisible()
     await expect(page.getByRole("button", { name: /Import Trip/i })).toBeVisible()
   })
@@ -42,7 +42,7 @@ test.describe("Import Trip Flow", () => {
     // Should show success summary with trip details
     await expect(page.getByText("E2E Test Trip")).toBeVisible({ timeout: 15000 })
     await expect(page.getByText("imported successfully")).toBeVisible()
-    await expect(page.getByText("2 steps")).toBeVisible()
+    await expect(page.getByText("2 chapters")).toBeVisible()
     await expect(page.getByText("2 photos")).toBeVisible()
     await expect(page.getByText("1,234 km")).toBeVisible()
   })
@@ -59,7 +59,7 @@ test.describe("Import Trip Flow", () => {
 
     // Should show trip list with the imported trip
     await expect(page.getByText("E2E Test Trip")).toBeVisible()
-    await expect(page.getByText("2 steps")).toBeVisible()
+    await expect(page.getByText("2 chapters")).toBeVisible()
   })
 
   test("clicking Import Another returns to import prompt", async ({ page }) => {
@@ -114,7 +114,7 @@ test.describe("Import Trip Flow", () => {
     // Verify trip was stored in IndexedDB
     const tripCountBefore = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
-        const req = indexedDB.open("polarsteps-vault")
+        const req = indexedDB.open("journey-vault")
         req.onsuccess = () => {
           const db = req.result
           const tx = db.transaction("trips", "readonly")
@@ -134,7 +134,7 @@ test.describe("Import Trip Flow", () => {
     // We test re-import by clearing the in-memory state via reload + DB manipulation.
     await page.evaluate(() => {
       return new Promise<void>((resolve) => {
-        const req = indexedDB.deleteDatabase("polarsteps-vault")
+        const req = indexedDB.deleteDatabase("journey-vault")
         req.onsuccess = () => resolve()
         req.onerror = () => resolve()
         req.onblocked = () => resolve()
@@ -153,7 +153,7 @@ test.describe("Import Trip Flow", () => {
     // Verify only 1 trip exists (upsert, not duplicate)
     const tripCountAfter = await page.evaluate(() => {
       return new Promise<number>((resolve) => {
-        const req = indexedDB.open("polarsteps-vault")
+        const req = indexedDB.open("journey-vault")
         req.onsuccess = () => {
           const db = req.result
           const tx = db.transaction("trips", "readonly")
@@ -174,7 +174,7 @@ test.describe("Import Trip Flow", () => {
     // Verify IndexedDB photo records contain metadata only (no blob field)
     const photoRecords = await page.evaluate(async () => {
       return new Promise<Array<Record<string, unknown>>>((resolve) => {
-        const req = indexedDB.open("polarsteps-vault")
+        const req = indexedDB.open("journey-vault")
         req.onsuccess = () => {
           const db = req.result
           const tx = db.transaction("photos", "readonly")
@@ -189,7 +189,7 @@ test.describe("Import Trip Flow", () => {
     for (const record of photoRecords) {
       expect(record).toHaveProperty("id")
       expect(record).toHaveProperty("tripId")
-      expect(record).toHaveProperty("stepId")
+      expect(record).toHaveProperty("chapterId")
       expect(record).toHaveProperty("filename")
       expect(record).not.toHaveProperty("blob")
     }
@@ -200,12 +200,12 @@ test.describe("Import Trip Flow", () => {
       const root = await navigator.storage.getDirectory()
       const photosDir = await root.getDirectoryHandle("photos")
 
-      // Recurse through trip/step directories to count files
+      // Recurse through trip/chapter directories to count files
       for await (const tripName of (photosDir as any).keys()) {
         const tripDir = await photosDir.getDirectoryHandle(tripName)
-        for await (const stepName of (tripDir as any).keys()) {
-          const stepDir = await tripDir.getDirectoryHandle(stepName)
-          for await (const _fileName of (stepDir as any).keys()) {
+        for await (const chapterName of (tripDir as any).keys()) {
+          const chapterDir = await tripDir.getDirectoryHandle(chapterName)
+          for await (const _fileName of (chapterDir as any).keys()) {
             count++
           }
         }
@@ -233,9 +233,9 @@ test.describe("Import Trip Flow", () => {
 
       for await (const tripName of (photosDir as any).keys()) {
         const tripDir = await photosDir.getDirectoryHandle(tripName)
-        for await (const stepName of (tripDir as any).keys()) {
-          const stepDir = await tripDir.getDirectoryHandle(stepName)
-          for await (const _fileName of (stepDir as any).keys()) {
+        for await (const chapterName of (tripDir as any).keys()) {
+          const chapterDir = await tripDir.getDirectoryHandle(chapterName)
+          for await (const _fileName of (chapterDir as any).keys()) {
             count++
           }
         }
@@ -258,6 +258,6 @@ test.describe("Import Trip Flow", () => {
 
     // Trip should still be visible (persisted in IndexedDB)
     await expect(page.getByText("E2E Test Trip")).toBeVisible({ timeout: 15000 })
-    await expect(page.getByText("2 steps")).toBeVisible()
+    await expect(page.getByText("2 chapters")).toBeVisible()
   })
 })

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest"
 import "fake-indexeddb/auto"
 
 import { shouldWarnAboutSize } from "@/features/import/lib/import-trip"
-import { getTrip, getPhotosByTrip, resetDb, saveTrip, saveSteps, savePhoto } from "@/stores/db"
+import { getTrip, getPhotosByTrip, resetDb, saveTrip, saveChapters, savePhoto } from "@/stores/db"
 import type { ImportProgress } from "@/types/import"
 
 // Mock extractZip to bypass jsdom File.arrayBuffer() issues
@@ -57,7 +57,7 @@ function makeTripJsonString() {
         },
         weather_condition: "sunny",
         weather_temperature: 30,
-        uuid: "step-uuid",
+        uuid: "chapter-uuid",
       },
     ],
   })
@@ -93,7 +93,7 @@ describe("shouldWarnAboutSize", () => {
 })
 
 describe("importTrip", () => {
-  it("imports a trip with metadata and steps", async () => {
+  it("imports a trip with metadata and chapters", async () => {
     mockExtractZip.mockResolvedValue(
       makeZipEntries({
         "trip/test-trip_1/trip.json": makeTripJsonString(),
@@ -107,7 +107,7 @@ describe("importTrip", () => {
     })
 
     expect(result.tripName).toBe("Test Trip")
-    expect(result.stepCount).toBe(1)
+    expect(result.chapterCount).toBe(1)
     expect(result.photoCount).toBe(0)
 
     const trip = await getTrip(1)
@@ -207,7 +207,7 @@ describe("importTrip", () => {
     // OPFS orphan cleanup was called
     expect(deletePhotoFiles).toHaveBeenCalledWith(
       expect.arrayContaining([
-        expect.objectContaining({ tripId: 1, stepId: 100, filename: "photo2.jpg" }),
+        expect.objectContaining({ tripId: 1, chapterId: 100, filename: "photo2.jpg" }),
       ])
     )
   })
@@ -257,7 +257,7 @@ describe("importTrip", () => {
 
     // Best-effort OPFS cleanup should have been attempted
     expect(deletePhotoFiles).toHaveBeenCalledWith([
-      { tripId: 1, stepId: 100, filename: "photo1.jpg" },
+      { tripId: 1, chapterId: 100, filename: "photo1.jpg" },
     ])
 
     savePhotoSpy.mockRestore()
@@ -314,7 +314,7 @@ describe("importTrip", () => {
     const file1 = new File(["zip"], "test.zip")
     await importTrip(file1, { onProgress: vi.fn() })
 
-    // Second import with invalid data (no steps)
+    // Second import with invalid data (no chapters)
     const noStepsTrip = JSON.stringify({
       id: 1,
       name: "Test Trip",

@@ -9,8 +9,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Polarsteps Vault",
-  description: "Your travels, your archive. Preserve and browse your Polarsteps travel memories.",
+  title: "Journey Vault",
+  description: "Your travels, your archive. Preserve and browse your travel memories.",
 }
 
 export default function RootLayout({

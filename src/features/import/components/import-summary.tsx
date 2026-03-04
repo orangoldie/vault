@@ -40,7 +40,7 @@ export function ImportSummary({
           <div className="flex items-center gap-2">
             <MapPin className="size-4 shrink-0 text-muted-foreground" />
             <span className="text-base font-medium text-primary">
-              {result.stepCount} steps
+              {result.chapterCount} chapters
             </span>
           </div>
           <div className="flex items-center gap-2">

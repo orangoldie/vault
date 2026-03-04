@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest"
 
 import { parseTrip } from "@/features/import/lib/parse-trip"
 import type { ZipEntries } from "@/features/import/lib/extract-zip"
-import type { RawTrip, RawStep } from "@/types/polarsteps-export"
+import type { RawTrip, RawStep } from "@/types/travel-export"
 
 function makeRawStep(overrides: Partial<RawStep> = {}): RawStep {
   return {
@@ -25,7 +25,7 @@ function makeRawStep(overrides: Partial<RawStep> = {}): RawStep {
     },
     weather_condition: "sunny",
     weather_temperature: 30,
-    uuid: "step-uuid",
+    uuid: "chapter-uuid",
     ...overrides,
   }
 }
@@ -64,8 +64,8 @@ describe("parseTrip", () => {
     expect(result.trip.name).toBe("Test Trip")
     expect(result.trip.slug).toBe("test-trip")
     expect(result.trip.startDate).toBe(1700000000)
-    expect(result.steps).toHaveLength(1)
-    expect(result.steps[0].displayName).toBe("Bangkok")
+    expect(result.chapters).toHaveLength(1)
+    expect(result.chapters[0].displayName).toBe("Bangkok")
     expect(result.tripDirPath).toBe("trip/test-trip_1/")
   })
 
@@ -84,10 +84,10 @@ describe("parseTrip", () => {
     expect(() => parseTrip(entries)).toThrow("invalid JSON")
   })
 
-  it("throws EMPTY_TRIP when trip has no steps", () => {
+  it("throws EMPTY_TRIP when trip has no chapters", () => {
     const raw = makeRawTrip({ all_steps: [] })
     const entries = makeEntries("trip/test_1/", raw)
-    expect(() => parseTrip(entries)).toThrow("no steps")
+    expect(() => parseTrip(entries)).toThrow("no chapters")
   })
 
   it("selects trip with earliest start_date when multiple trips exist", () => {
@@ -110,7 +110,7 @@ describe("parseTrip", () => {
       summary: "Hello <b>world</b>",
       all_steps: [
         makeRawStep({
-          display_name: '<img src=x onerror=alert(1)>Step',
+          display_name: '<img src=x onerror=alert(1)>Chapter',
           description: "Normal <em>text</em>",
         }),
       ],
@@ -121,8 +121,8 @@ describe("parseTrip", () => {
 
     expect(result.trip.name).toBe('alert("xss")My Trip')
     expect(result.trip.summary).toBe("Hello world")
-    expect(result.steps[0].displayName).toBe("Step")
-    expect(result.steps[0].description).toBe("Normal text")
+    expect(result.chapters[0].displayName).toBe("Chapter")
+    expect(result.chapters[0].description).toBe("Normal text")
   })
 
   it("handles user_data/ prefix in path", () => {
@@ -149,7 +149,7 @@ describe("parseTrip", () => {
     const entries = makeEntries("trip/test_1/", raw)
     const result = parseTrip(entries)
 
-    expect(result.steps[0].location.name).toBe("")
-    expect(result.steps[0].location.lat).toBe(0)
+    expect(result.chapters[0].location.name).toBe("")
+    expect(result.chapters[0].location.lat).toBe(0)
   })
 })

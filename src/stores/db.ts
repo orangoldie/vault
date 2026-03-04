@@ -1,10 +1,10 @@
 import { openDB, type IDBPDatabase } from "idb"
 
-import type { Trip, Step, Photo } from "@/types/trip"
+import type { Trip, Chapter, Photo } from "@/types/trip"
 
 import { deletePhotosByTrip } from "@/stores/photo-storage"
 
-const DB_NAME = "polarsteps-vault"
+const DB_NAME = "journey-vault"
 const DB_VERSION = 2
 
 interface VaultDB {
@@ -12,9 +12,9 @@ interface VaultDB {
     key: number
     value: Trip
   }
-  steps: {
+  chapters: {
     key: number
-    value: Step
+    value: Chapter
     indexes: {
       tripId: number
     }
@@ -24,7 +24,7 @@ interface VaultDB {
     value: Photo
     indexes: {
       tripId: number
-      stepId: number
+      chapterId: number
     }
   }
 }
@@ -38,12 +38,12 @@ function getDb(): Promise<IDBPDatabase<VaultDB>> {
         if (oldVersion < 1) {
           db.createObjectStore("trips", { keyPath: "id" })
 
-          const stepStore = db.createObjectStore("steps", { keyPath: "id" })
-          stepStore.createIndex("tripId", "tripId")
+          const chapterStore = db.createObjectStore("chapters", { keyPath: "id" })
+          chapterStore.createIndex("tripId", "tripId")
 
           const photoStore = db.createObjectStore("photos", { keyPath: "id" })
           photoStore.createIndex("tripId", "tripId")
-          photoStore.createIndex("stepId", "stepId")
+          photoStore.createIndex("chapterId", "chapterId")
         }
 
         if (oldVersion >= 1 && oldVersion < 2) {
@@ -51,7 +51,7 @@ function getDb(): Promise<IDBPDatabase<VaultDB>> {
           db.deleteObjectStore("photos")
           const photoStore = db.createObjectStore("photos", { keyPath: "id" })
           photoStore.createIndex("tripId", "tripId")
-          photoStore.createIndex("stepId", "stepId")
+          photoStore.createIndex("chapterId", "chapterId")
         }
       },
     })
@@ -64,11 +64,11 @@ export async function saveTrip(trip: Trip): Promise<void> {
   await db.put("trips", trip)
 }
 
-export async function saveSteps(steps: Step[]): Promise<void> {
+export async function saveChapters(chapters: Chapter[]): Promise<void> {
   const db = await getDb()
-  const tx = db.transaction("steps", "readwrite")
-  for (const step of steps) {
-    await tx.store.put(step)
+  const tx = db.transaction("chapters", "readwrite")
+  for (const chapter of chapters) {
+    await tx.store.put(chapter)
   }
   await tx.done
 }
@@ -88,9 +88,9 @@ export async function getAllTrips(): Promise<Trip[]> {
   return db.getAll("trips")
 }
 
-export async function getStepsByTrip(tripId: number): Promise<Step[]> {
+export async function getChaptersByTrip(tripId: number): Promise<Chapter[]> {
   const db = await getDb()
-  return db.getAllFromIndex("steps", "tripId", tripId)
+  return db.getAllFromIndex("chapters", "tripId", tripId)
 }
 
 export async function getPhotosByTrip(tripId: number): Promise<string[]> {
@@ -112,13 +112,13 @@ export async function getPhotosByIds(ids: string[]): Promise<Photo[]> {
 export async function deleteTrip(id: number): Promise<void> {
   const db = await getDb()
 
-  const stepKeys = await db.getAllKeysFromIndex("steps", "tripId", id)
+  const chapterKeys = await db.getAllKeysFromIndex("chapters", "tripId", id)
   const photoKeys = await db.getAllKeysFromIndex("photos", "tripId", id)
 
-  const tx = db.transaction(["trips", "steps", "photos"], "readwrite")
+  const tx = db.transaction(["trips", "chapters", "photos"], "readwrite")
   await tx.objectStore("trips").delete(id)
-  for (const key of stepKeys) {
-    await tx.objectStore("steps").delete(key)
+  for (const key of chapterKeys) {
+    await tx.objectStore("chapters").delete(key)
   }
   for (const key of photoKeys) {
     await tx.objectStore("photos").delete(key)

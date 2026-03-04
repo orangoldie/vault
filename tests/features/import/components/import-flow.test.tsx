@@ -33,7 +33,7 @@ describe("ImportFlow", () => {
     render(<ImportFlow />)
 
     await waitFor(() => {
-      expect(screen.getByText("Polarsteps Vault")).toBeInTheDocument()
+      expect(screen.getByText("Journey Vault")).toBeInTheDocument()
     })
     expect(
       screen.getByRole("button", { name: /Import Trip/i })
@@ -50,7 +50,7 @@ describe("ImportFlow", () => {
         endDate: 1700500000,
         summary: "",
         coverPhotoId: null,
-        stepCount: 10,
+        chapterCount: 10,
         photoCount: 50,
         totalKm: 1000,
         uuid: "uuid",
@@ -63,13 +63,13 @@ describe("ImportFlow", () => {
     await waitFor(() => {
       expect(screen.getByText("Existing Trip")).toBeInTheDocument()
     })
-    expect(screen.getByText("10 steps")).toBeInTheDocument()
+    expect(screen.getByText("10 chapters")).toBeInTheDocument()
   })
 
   it("transitions to success state after a fast import", async () => {
     mockImportTrip.mockResolvedValue({
       tripName: "My Adventure",
-      stepCount: 5,
+      chapterCount: 5,
       photoCount: 0,
       startDate: 1700000000,
       endDate: 1700500000,
@@ -86,7 +86,7 @@ describe("ImportFlow", () => {
 
     // Simulate file selection
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["zip"], "export.zip", { type: "application/zip" })
 
@@ -113,7 +113,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["bad"], "bad.zip", { type: "application/zip" })
 
@@ -137,7 +137,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["bad"], "bad.zip")
 
@@ -162,7 +162,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     await userEvent.upload(input, new File(["z"], "t.zip"))
 
@@ -182,7 +182,7 @@ describe("ImportFlow", () => {
   it("returns to idle state when Done is clicked after success", async () => {
     mockImportTrip.mockResolvedValue({
       tripName: "Trip",
-      stepCount: 1,
+      chapterCount: 1,
       photoCount: 0,
       startDate: 1700000000,
       endDate: 1700500000,
@@ -198,7 +198,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     await userEvent.upload(input, new File(["z"], "t.zip"))
 
@@ -209,7 +209,7 @@ describe("ImportFlow", () => {
     await userEvent.click(screen.getByRole("button", { name: /Done/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Polarsteps Vault")).toBeInTheDocument()
+      expect(screen.getByText("Journey Vault")).toBeInTheDocument()
     })
   })
 
@@ -225,7 +225,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["z"], "big.zip")
 
@@ -241,7 +241,7 @@ describe("ImportFlow", () => {
     mockShouldWarnAboutSize.mockReturnValue(600)
     mockImportTrip.mockResolvedValue({
       tripName: "Big Trip",
-      stepCount: 100,
+      chapterCount: 100,
       photoCount: 500,
       startDate: 1700000000,
       endDate: 1700500000,
@@ -257,7 +257,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     await userEvent.upload(input, new File(["z"], "big.zip"))
 
@@ -287,7 +287,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     await userEvent.upload(input, new File(["z"], "big.zip"))
 
@@ -318,7 +318,7 @@ describe("ImportFlow", () => {
     })
 
     const input = screen.getByLabelText(
-      "Select Polarsteps export ZIP file"
+      "Select travel export ZIP file"
     ) as HTMLInputElement
     const file = new File(["zip"], "big.zip", { type: "application/zip" })
 

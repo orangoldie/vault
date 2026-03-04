@@ -1,4 +1,4 @@
-# 01 — Import a Polarsteps Trip Export — QA Report
+# 01 — Import a Trip Export — QA Report
 
 ## Summary
 
@@ -24,17 +24,17 @@
 |---|---|---|
 | `import-prompt.test.tsx` | 7 | Renders app name/tagline, Import Trip button, file input (hidden, accepts .zip), file selection callback, input reset after selection, cancel handling |
 | `import-progress.test.tsx` | 7 | Progress percentage, detail text, trip name display, null trip name, RTL/bdi wrapping, accessible progressbar, aria-live region |
-| `import-summary.test.tsx` | 10 | Trip name, success message, step/photo/distance/date stats, RTL/bdi wrapping, Import Another callback, Done callback, success icon |
+| `import-summary.test.tsx` | 10 | Trip name, success message, chapter/photo/distance/date stats, RTL/bdi wrapping, Import Another callback, Done callback, success icon |
 | `import-error.test.tsx` | 11 | Error heading, Try Again button/callback, all 7 error codes mapped to correct user-friendly messages, warning icon |
-| `trip-list.test.tsx` | 9 | App heading, all trips rendered, step/photo counts, date ranges, RTL/bdi wrapping, Import Trip button/callback, empty list |
+| `trip-list.test.tsx` | 9 | App heading, all trips rendered, chapter/photo counts, date ranges, RTL/bdi wrapping, Import Trip button/callback, empty list |
 | `import-flow.test.tsx` | 11 | Idle state (no trips), trip list state (existing trips), success transition after import, error transition, unknown error wrapping, Try Again → idle, Done → idle, large file warning (500 MB), confirm large file, cancel large file, aria-live region |
 
 ### E2E Tests (new — 8 tests)
 
 | Test | What it covers |
 |---|---|
-| Shows empty state on first visit | Page loads, "Polarsteps Vault" heading visible, Import button visible |
-| Imports a valid ZIP and shows success | Full flow: file upload → success summary with trip name, steps, photos, km |
+| Shows empty state on first visit | Page loads, "Journey Vault" heading visible, Import button visible |
+| Imports a valid ZIP and shows success | Full flow: file upload → success summary with trip name, chapters, photos, km |
 | Done after import shows trip list | Success → Done → trip list with imported trip |
 | Import Another returns to prompt | Success → Import Another → back to idle/list |
 | Shows error for invalid ZIP | Upload non-ZIP file → error message + Try Again button |
@@ -60,11 +60,11 @@
 | ZIP extraction in-browser | ✅ | | ✅ |
 | Multi-trip: earliest `start_date` | ✅ | | |
 | Parse `trip.json` metadata | ✅ | | ✅ |
-| Parse steps from `all_steps[]` | ✅ | | ✅ |
-| Read photos from step dirs | ✅ | | ✅ |
+| Parse chapters from `all_steps[]` | ✅ | | ✅ |
+| Read photos from chapter dirs | ✅ | | ✅ |
 | Persist to IndexedDB | ✅ | | ✅ |
 | Progress indicator | ✅ | ✅ | |
-| Success summary (name, steps, photos) | | ✅ | ✅ |
+| Success summary (name, chapters, photos) | | ✅ | ✅ |
 | Error messages (all 7 codes) | | ✅ | ✅ (invalid ZIP) |
 | Storage quota error | ✅ | ✅ (error display) | |
 | Safe upsert (re-import) | ✅ | | ✅ |

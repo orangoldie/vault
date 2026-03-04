@@ -151,7 +151,7 @@ describe("photo-storage", () => {
     await writePhoto(1, 100, "a.jpg", new Uint8Array([1]))
     await writePhoto(1, 100, "b.jpg", new Uint8Array([2]))
 
-    await deletePhotoFiles([{ tripId: 1, stepId: 100, filename: "a.jpg" }])
+    await deletePhotoFiles([{ tripId: 1, chapterId: 100, filename: "a.jpg" }])
 
     const blobA = await readPhoto(1, 100, "a.jpg")
     const blobB = await readPhoto(1, 100, "b.jpg")
@@ -161,7 +161,7 @@ describe("photo-storage", () => {
 
   it("does not throw when deleting non-existent files", async () => {
     await expect(
-      deletePhotoFiles([{ tripId: 999, stepId: 999, filename: "nope.jpg" }])
+      deletePhotoFiles([{ tripId: 999, chapterId: 999, filename: "nope.jpg" }])
     ).resolves.toBeUndefined()
   })
 
@@ -189,11 +189,11 @@ describe("photo-storage", () => {
     expect(blob2).not.toBeNull()
   })
 
-  it("isolates photos across different steps in the same trip", async () => {
+  it("isolates photos across different chapters in the same trip", async () => {
     await writePhoto(1, 100, "photo.jpg", new Uint8Array([1]))
     await writePhoto(1, 101, "photo.jpg", new Uint8Array([2]))
 
-    await deletePhotoFiles([{ tripId: 1, stepId: 100, filename: "photo.jpg" }])
+    await deletePhotoFiles([{ tripId: 1, chapterId: 100, filename: "photo.jpg" }])
 
     const blob100 = await readPhoto(1, 100, "photo.jpg")
     const blob101 = await readPhoto(1, 101, "photo.jpg")

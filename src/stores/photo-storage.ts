@@ -18,14 +18,14 @@ async function getOrCreateDir(
 
 export async function writePhoto(
   tripId: number,
-  stepId: number,
+  chapterId: number,
   filename: string,
   data: Uint8Array
 ): Promise<void> {
   const root = await getPhotosRoot()
   const tripDir = await getOrCreateDir(root, String(tripId))
-  const stepDir = await getOrCreateDir(tripDir, String(stepId))
-  const fileHandle = await stepDir.getFileHandle(filename, { create: true })
+  const chapterDir = await getOrCreateDir(tripDir, String(chapterId))
+  const fileHandle = await chapterDir.getFileHandle(filename, { create: true })
   const writable = await fileHandle.createWritable()
   await writable.write(data)
   await writable.close()
@@ -33,14 +33,14 @@ export async function writePhoto(
 
 export async function readPhoto(
   tripId: number,
-  stepId: number,
+  chapterId: number,
   filename: string
 ): Promise<Blob | null> {
   try {
     const root = await getPhotosRoot()
     const tripDir = await root.getDirectoryHandle(String(tripId))
-    const stepDir = await tripDir.getDirectoryHandle(String(stepId))
-    const fileHandle = await stepDir.getFileHandle(filename)
+    const chapterDir = await tripDir.getDirectoryHandle(String(chapterId))
+    const fileHandle = await chapterDir.getFileHandle(filename)
     return await fileHandle.getFile()
   } catch {
     return null
@@ -57,14 +57,14 @@ export async function deletePhotosByTrip(tripId: number): Promise<void> {
 }
 
 export async function deletePhotoFiles(
-  photos: Array<{ tripId: number; stepId: number; filename: string }>
+  photos: Array<{ tripId: number; chapterId: number; filename: string }>
 ): Promise<void> {
   const root = await getPhotosRoot()
-  for (const { tripId, stepId, filename } of photos) {
+  for (const { tripId, chapterId, filename } of photos) {
     try {
       const tripDir = await root.getDirectoryHandle(String(tripId))
-      const stepDir = await tripDir.getDirectoryHandle(String(stepId))
-      await stepDir.removeEntry(filename)
+      const chapterDir = await tripDir.getDirectoryHandle(String(chapterId))
+      await chapterDir.removeEntry(filename)
     } catch {
       // File may already be gone — that's fine
     }

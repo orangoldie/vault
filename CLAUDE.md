@@ -1,6 +1,6 @@
-# Polarsteps Vault
+# Journey Vault
 
-Digital archive and album tool that preserves and presents Polarsteps travel memories. Fully client-side (v1).
+Digital archive and album tool that preserves and presents travel memories. Fully client-side (v1).
 
 ## Project Context
 

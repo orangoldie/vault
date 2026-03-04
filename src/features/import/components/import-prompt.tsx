@@ -29,7 +29,7 @@ export function ImportPrompt({ onFileSelected }: ImportPromptProps) {
     <div className="flex flex-col items-center gap-8 text-center">
       <div className="flex flex-col items-center gap-3">
         <h1 className="text-[1.875rem] font-semibold leading-[1.2] tracking-[-0.02em] text-primary">
-          Polarsteps Vault
+          Journey Vault
         </h1>
       </div>
 
@@ -38,7 +38,7 @@ export function ImportPrompt({ onFileSelected }: ImportPromptProps) {
           Your travels, your archive.
         </p>
         <p className="max-w-[340px] text-base leading-[1.5] text-muted-foreground">
-          Import your Polarsteps data export and turn it into a beautiful travel
+          Import your travel data export and turn it into a beautiful travel
           album.
         </p>
       </div>
@@ -52,7 +52,7 @@ export function ImportPrompt({ onFileSelected }: ImportPromptProps) {
           Import Trip
         </Button>
         <p className="text-xs leading-[1.5] tracking-[0.01em] text-muted-foreground">
-          Select your Polarsteps export ZIP file
+          Select your travel export ZIP file
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export function ImportPrompt({ onFileSelected }: ImportPromptProps) {
         accept=".zip"
         onChange={handleChange}
         className="hidden"
-        aria-label="Select Polarsteps export ZIP file"
+        aria-label="Select travel export ZIP file"
       />
     </div>
   )

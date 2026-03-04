@@ -4,7 +4,7 @@ import { collectPhotos } from "@/features/import/lib/collect-photos"
 import type { ZipEntries } from "@/features/import/lib/extract-zip"
 
 describe("collectPhotos", () => {
-  it("collects photos from step directories", () => {
+  it("collects photos from chapter directories", () => {
     const entries: ZipEntries = {
       "trip/test_1/bangkok_100/photos/photo1.jpg.jpg": new Uint8Array([1, 2, 3]),
       "trip/test_1/bangkok_100/photos/photo2.jpg.jpg": new Uint8Array([4, 5, 6]),
@@ -14,9 +14,9 @@ describe("collectPhotos", () => {
     const photos = collectPhotos(entries, "trip/test_1/", 1)
 
     expect(photos).toHaveLength(3)
-    expect(photos[0].stepId).toBe(100)
+    expect(photos[0].chapterId).toBe(100)
     expect(photos[0].filename).toBe("photo1.jpg.jpg")
-    expect(photos[2].stepId).toBe(101)
+    expect(photos[2].chapterId).toBe(101)
   })
 
   it("skips non-photo entries", () => {

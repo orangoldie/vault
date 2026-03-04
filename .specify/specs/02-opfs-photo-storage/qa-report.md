@@ -13,20 +13,20 @@
 - No-throw on deleting non-existent files
 - **[NEW]** Overwrites an existing photo file (idempotent write)
 - **[NEW]** Isolates photos across different trips (trip deletion doesn't leak)
-- **[NEW]** Isolates photos across different steps in the same trip
+- **[NEW]** Isolates photos across different chapters in the same trip
 
 #### `tests/stores/db.test.ts` (14 tests)
 - Trip CRUD (save, get, getAll, upsert)
-- Step save and retrieval by tripId
+- Chapter save and retrieval by tripId
 - Photo metadata CRUD (save, getByTrip, getByIds, delete)
 - deleteTrip removes all records AND calls `deletePhotosByTrip()` for OPFS cleanup
 - Empty input edge cases (deletePhotos([]), getPhotosByIds([]))
 - Skips non-existent IDs in batch fetch
 - **[NEW]** Photo metadata has no `blob` field (schema v2 validation)
-- **[NEW]** deleteTrip removes all associated steps
+- **[NEW]** deleteTrip removes all associated chapters
 
 #### `tests/features/import/lib/import-trip.test.ts` (12 tests)
-- Basic import with metadata and steps
+- Basic import with metadata and chapters
 - Photos written to OPFS and metadata to IndexedDB (dual-write verified)
 - Error handling: INVALID_ZIP, MISSING_TRIP_JSON
 - Orphan cleanup on re-import (removes OPFS files + IndexedDB records)
@@ -61,7 +61,7 @@
 |---|---|---|
 | Photo blobs stored in OPFS, not IndexedDB | `import-trip.test.ts` (writePhoto mock verified) | `stores photo data in OPFS` |
 | Photo metadata in IndexedDB (no blob) | `db.test.ts` (no blob field) | `stores photo data in OPFS` |
-| Photos organized by trip/step in OPFS | `photo-storage.test.ts` (isolation tests) | `stores photo data in OPFS` |
+| Photos organized by trip/chapter in OPFS | `photo-storage.test.ts` (isolation tests) | `stores photo data in OPFS` |
 | Deleting trip removes metadata + OPFS files | `db.test.ts` (deletePhotosByTrip called) | — |
 | Re-import cleans up orphaned files | `import-trip.test.ts` (orphan cleanup) | — |
 | Quota error shows clear message | `import-trip.test.ts` + `import-flow.test.tsx` | — |
@@ -77,7 +77,7 @@
 - **No E2E test for re-import orphan cleanup** — The existing re-import E2E test clears the DB (not a true re-import). Unit test covers orphan cleanup well.
 
 ### Medium Risk
-- **Partial import failure leaves trip/step metadata** — If photo import fails after `saveTrip`/`saveSteps` succeed, the trip record persists without photos. This is existing behavior (not new to spec 02) and may be acceptable for v1.
+- **Partial import failure leaves trip/chapter metadata** — If photo import fails after `saveTrip`/`saveChapters` succeed, the trip record persists without photos. This is existing behavior (not new to spec 02) and may be acceptable for v1.
 
 ### Not Testable in CI
 - **Browser compatibility** — OPFS is tested only in Chromium via Playwright. Firefox and Safari require manual testing.
@@ -88,6 +88,6 @@
 
 1. **Firefox OPFS compatibility** — Import a trip in Firefox, verify photos load correctly
 2. **Safari 26+ OPFS compatibility** — Same as above for Safari
-3. **Large export (>100 MB)** — Import a real Polarsteps export with 50+ photos, verify smooth progress and no timeouts
+3. **Large export (>100 MB)** — Import a real travel export with 50+ photos, verify smooth progress and no timeouts
 4. **Storage pressure** — Fill browser storage near quota, attempt import, verify clear error message
 5. **v1→v2 migration** — If any users have existing v1 databases, verify the schema upgrade drops and recreates the photos store correctly

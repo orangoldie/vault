@@ -8,11 +8,11 @@ vi.mock("@/stores/photo-storage", () => ({
 
 import {
   saveTrip,
-  saveSteps,
+  saveChapters,
   savePhoto,
   getTrip,
   getAllTrips,
-  getStepsByTrip,
+  getChaptersByTrip,
   getPhotosByTrip,
   getPhotosByIds,
   deleteTrip,
@@ -20,7 +20,7 @@ import {
   resetDb,
 } from "@/stores/db"
 import { deletePhotosByTrip } from "@/stores/photo-storage"
-import type { Trip, Step, Photo } from "@/types/trip"
+import type { Trip, Chapter, Photo } from "@/types/trip"
 
 function makeTripFixture(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -31,7 +31,7 @@ function makeTripFixture(overrides: Partial<Trip> = {}): Trip {
     endDate: 1700500000,
     summary: "A test trip",
     coverPhotoId: null,
-    stepCount: 2,
+    chapterCount: 2,
     photoCount: 0,
     totalKm: 100,
     uuid: "uuid-trip-1",
@@ -40,13 +40,13 @@ function makeTripFixture(overrides: Partial<Trip> = {}): Trip {
   }
 }
 
-function makeStepFixture(overrides: Partial<Step> = {}): Step {
+function makeChapterFixture(overrides: Partial<Chapter> = {}): Chapter {
   return {
     id: 100,
     tripId: 1,
-    displayName: "Step 1",
+    displayName: "Chapter 1",
     description: null,
-    slug: "step-1",
+    slug: "chapter-1",
     startTime: 1700000000,
     endTime: 1700100000,
     location: {
@@ -59,7 +59,7 @@ function makeStepFixture(overrides: Partial<Step> = {}): Step {
     },
     weatherCondition: "sunny",
     weatherTemperature: 30,
-    uuid: "uuid-step-1",
+    uuid: "uuid-chapter-1",
     ...overrides,
   }
 }
@@ -68,7 +68,7 @@ function makePhotoFixture(overrides: Partial<Photo> = {}): Photo {
   return {
     id: "1-100-photo.jpg",
     tripId: 1,
-    stepId: 100,
+    chapterId: 100,
     filename: "photo.jpg",
     ...overrides,
   }
@@ -102,17 +102,17 @@ describe("db", () => {
     expect(trips).toHaveLength(2)
   })
 
-  it("saves and retrieves steps", async () => {
-    const steps = [
-      makeStepFixture({ id: 100 }),
-      makeStepFixture({ id: 101, displayName: "Step 2" }),
+  it("saves and retrieves chapters", async () => {
+    const chapters = [
+      makeChapterFixture({ id: 100 }),
+      makeChapterFixture({ id: 101, displayName: "Chapter 2" }),
     ]
-    await saveSteps(steps)
+    await saveChapters(chapters)
 
-    const retrieved = await getStepsByTrip(1)
+    const retrieved = await getChaptersByTrip(1)
     expect(retrieved).toHaveLength(2)
-    expect(retrieved.map((s) => s.displayName)).toContain("Step 1")
-    expect(retrieved.map((s) => s.displayName)).toContain("Step 2")
+    expect(retrieved.map((s) => s.displayName)).toContain("Chapter 1")
+    expect(retrieved.map((s) => s.displayName)).toContain("Chapter 2")
   })
 
   it("saves a photo and retrieves photo keys by trip", async () => {
@@ -131,9 +131,9 @@ describe("db", () => {
     expect(trip?.name).toBe("Updated")
   })
 
-  it("deletes a trip with all steps, photos, and OPFS files", async () => {
+  it("deletes a trip with all chapters, photos, and OPFS files", async () => {
     await saveTrip(makeTripFixture())
-    await saveSteps([makeStepFixture()])
+    await saveChapters([makeChapterFixture()])
     await savePhoto(makePhotoFixture())
 
     await deleteTrip(1)
@@ -190,22 +190,22 @@ describe("db", () => {
     expect(photos[0]).toEqual({
       id: photo.id,
       tripId: photo.tripId,
-      stepId: photo.stepId,
+      chapterId: photo.chapterId,
       filename: photo.filename,
     })
     expect(photos[0]).not.toHaveProperty("blob")
   })
 
-  it("deletes trip steps when deleting a trip", async () => {
+  it("deletes trip chapters when deleting a trip", async () => {
     await saveTrip(makeTripFixture())
-    await saveSteps([
-      makeStepFixture({ id: 100 }),
-      makeStepFixture({ id: 101, displayName: "Step 2" }),
+    await saveChapters([
+      makeChapterFixture({ id: 100 }),
+      makeChapterFixture({ id: 101, displayName: "Chapter 2" }),
     ])
 
     await deleteTrip(1)
 
-    const steps = await getStepsByTrip(1)
-    expect(steps).toHaveLength(0)
+    const chapters = await getChaptersByTrip(1)
+    expect(chapters).toHaveLength(0)
   })
 })

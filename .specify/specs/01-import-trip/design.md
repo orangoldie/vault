@@ -1,4 +1,4 @@
-# 01 — Import a Polarsteps Trip Export — Design
+# 01 — Import a Trip Export — Design
 
 ## User Flow
 
@@ -9,10 +9,10 @@
 2. User clicks "Import Trip"
    → file picker opens (filtered to .zip files)
 
-3a. User selects a valid Polarsteps export ZIP
+3a. User selects a valid travel export ZIP
    → picker closes, Import Progress view appears
    → ZIP is extracted in-browser, trip data and photos are read
-   → progress bar fills as steps and photos are stored
+   → progress bar fills as chapters and photos are stored
    → on completion, Success Summary appears
 
 3b. User selects an invalid file (not a ZIP, no trip.json inside, malformed data)
@@ -37,9 +37,9 @@ The first thing any new user sees. Must feel welcoming, not empty.
 
 - App logo / name at top
 - Headline: "Your travels, your archive"
-- Subtext: brief explanation that this app preserves Polarsteps exports
+- Subtext: brief explanation that this app preserves travel exports
 - A single, prominent "Import Trip" button
-- Small helper text below the button: "Select your Polarsteps export ZIP file"
+- Small helper text below the button: "Select your travel export ZIP file"
 
 ### State 2: Import Progress
 
@@ -47,10 +47,10 @@ Replaces the empty state content while an import is running. User should feel co
 
 - Trip name displayed at top (extracted from `trip.json` immediately)
 - A determinate progress bar showing overall progress
-- Live counter text: "Extracting ZIP..." then "Importing step 12 of 56..." then "Importing photos... 47 of 213"
+- Live counter text: "Extracting ZIP..." then "Importing chapter 12 of 56..." then "Importing photos... 47 of 213"
 - The import has three visible phases:
   1. **Extracting ZIP** (fast — unzipping the archive in-browser)
-  2. **Reading trip data** (fast — parsing JSON, extracting step metadata)
+  2. **Reading trip data** (fast — parsing JSON, extracting chapter metadata)
   3. **Storing photos** (slower — persisting image blobs to IndexedDB)
 - No cancel button in v1 (import is fast enough and non-destructive)
 
@@ -61,13 +61,13 @@ Appears when import completes. Gives the user confidence their data is safe.
 - A checkmark or success icon
 - Trip name (large, prominent) — respects text direction (RTL/LTR)
 - Summary stats in a compact card:
-  - Number of steps (e.g., "56 steps")
+  - Number of chapters (e.g., "56 chapters")
   - Number of photos (e.g., "213 photos")
   - Date range (e.g., "Feb 9 – Jun 10, 2025")
   - Total distance (e.g., "23,175 km")
 - Two actions:
   - **"Import Another Trip"** — returns to the import prompt
-  - **"Done"** (primary) — in v1, since there's no trip viewer yet, this returns to the home screen which shows a simple list of imported trips and an "Import Trip" button. Each trip in the list shows: trip name (with `dir="auto"`), date range, step count, and photo count. This post-import home state is minimal — just enough to confirm data exists. See wireframe below.
+  - **"Done"** (primary) — in v1, since there's no trip viewer yet, this returns to the home screen which shows a simple list of imported trips and an "Import Trip" button. Each trip in the list shows: trip name (with `dir="auto"`), date range, chapter count, and photo count. This post-import home state is minimal — just enough to confirm data exists. See wireframe below.
 
 ### State 4: Error State
 
@@ -76,10 +76,10 @@ Appears when the selected folder can't be parsed. Must be helpful, not scary.
 - A warning icon (not red/alarming — amber/orange)
 - Headline: "We couldn't read this file"
 - Specific, plain-language message based on the error type:
-  - Invalid file: "This doesn't appear to be a ZIP file. Please select the ZIP file you downloaded from Polarsteps."
-  - Missing trip data: "No trip data was found in this file. Make sure you're selecting a Polarsteps export ZIP (it should contain a trip.json file)."
-  - Corrupted data: "The trip data in this file appears to be damaged. Try re-downloading your export from Polarsteps."
-  - Empty trip: "This trip doesn't contain any steps or photos to import."
+  - Invalid file: "This doesn't appear to be a ZIP file. Please select the ZIP file you downloaded from your travel app."
+  - Missing trip data: "No trip data was found in this file. Make sure you're selecting a travel export ZIP (it should contain a trip.json file)."
+  - Corrupted data: "The trip data in this file appears to be damaged. Try re-downloading your export from your travel app."
+  - Empty trip: "This trip doesn't contain any chapters or photos to import."
   - Storage full: "There isn't enough storage space to import this trip. Try closing other tabs or clearing browser data to free up space."
   - File too large (after user dismisses warning): "The file may be too large to process in the browser. Try a smaller export or free up system memory."
 - A single **"Try Again"** button that returns to the import prompt
@@ -110,7 +110,7 @@ The success confirmation after import.
 
 - Success icon
 - Trip name (auto-direction for RTL/LTR)
-- Stats grid (steps, photos, dates, distance)
+- Stats grid (chapters, photos, dates, distance)
 - Action buttons
 
 ### ImportError
@@ -157,17 +157,17 @@ All states are **centered on the page**, vertically and horizontally. Maximum co
 ┌──────────────────────────────────────────────┐
 │                                              │
 │                                              │
-│              ◆ Polarsteps Vault              │
+│              ◆ Journey Vault              │
 │                                              │
 │          Your travels, your archive.         │
-│   Import your Polarsteps data export and     │
+│   Import your travel data export and     │
 │    turn it into a beautiful travel album.    │
 │                                              │
 │           ┌──────────────────┐               │
 │           │   Import Trip    │               │
 │           └──────────────────┘               │
 │                                              │
-│      Select your Polarsteps export            │
+│      Select your travel export            │
 │               ZIP file                       │
 │                                              │
 │                                              │
@@ -202,7 +202,7 @@ All states are **centered on the page**, vertically and horizontally. Maximum co
 │       imported successfully                  │
 │                                              │
 │     ┌──────────────────────────┐             │
-│     │  56 steps · 213 photos   │             │
+│     │  56 chapters · 213 photos │             │
 │     │  Feb 9 – Jun 10, 2025   │             │
 │     │  23,175 km               │             │
 │     └──────────────────────────┘             │
@@ -224,7 +224,7 @@ All states are **centered on the page**, vertically and horizontally. Maximum co
 │       We couldn't read this file           │
 │                                              │
 │    No trip data was found in this file.       │
-│    Make sure you're selecting a Polarsteps    │
+│    Make sure you're selecting a travel export    │
 │    export ZIP (it should contain a            │
 │    trip.json file).                          │
 │                                              │
@@ -240,18 +240,18 @@ All states are **centered on the page**, vertically and horizontally. Maximum co
 ```
 ┌──────────────────────────────────────────────┐
 │                                              │
-│              ◆ Polarsteps Vault              │
+│              ◆ Journey Vault              │
 │                                              │
 │     ┌──────────────────────────────────┐     │
 │     │  אלי ואורן במזרח                 │     │
 │     │  Feb 9 – Jun 10, 2025            │     │
-│     │  56 steps · 213 photos           │     │
+│     │  56 chapters · 213 photos         │     │
 │     └──────────────────────────────────┘     │
 │                                              │
 │     ┌──────────────────────────────────┐     │
 │     │  Europe Summer 2024              │     │
 │     │  Jul 1 – Aug 15, 2024            │     │
-│     │  32 steps · 148 photos           │     │
+│     │  32 chapters · 148 photos         │     │
 │     └──────────────────────────────────┘     │
 │                                              │
 │           ┌──────────────────┐               │
@@ -270,7 +270,7 @@ All states are **centered on the page**, vertically and horizontally. Maximum co
 
 ## Accessibility Notes
 
-1. **RTL/LTR text direction**: Use `dir="auto"` on all user-generated text (trip names, step names, descriptions) so the browser auto-detects direction. Do not hardcode direction.
+1. **RTL/LTR text direction**: Use `dir="auto"` on all user-generated text (trip names, chapter names, descriptions) so the browser auto-detects direction. Do not hardcode direction.
 2. **Progress bar**: Use `role="progressbar"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax`. Include a visually hidden live region (`aria-live="polite"`) that announces progress milestones (e.g., "50% complete", "Import finished").
 3. **Focus management**: After the folder picker closes, return focus to the relevant content area. After import completes, move focus to the success heading or error heading.
 4. **Reduced motion**: All crossfade transitions and progress bar animations must respect `prefers-reduced-motion: reduce` — use instant transitions instead.
@@ -417,7 +417,7 @@ Use **Lucide** icons (the icon set bundled with shadcn/ui).
 | Success        | `CircleCheck`   | 48px  | `success`          |
 | Warning/Error  | `AlertTriangle` | 48px  | `warning`          |
 | Import button  | `Upload`        | 20px  | `accent-foreground`|
-| Steps stat     | `MapPin`        | 16px  | `text-secondary`   |
+| Chapters stat  | `MapPin`        | 16px  | `text-secondary`   |
 | Photos stat    | `Image`         | 16px  | `text-secondary`   |
 | Date stat      | `Calendar`      | 16px  | `text-secondary`   |
 | Distance stat  | `Route`         | 16px  | `text-secondary`   |

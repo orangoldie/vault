@@ -2,14 +2,14 @@ import type { ZipEntries } from "./extract-zip"
 
 export interface PhotoEntry {
   tripId: number
-  stepId: number
+  chapterId: number
   filename: string
   data: Uint8Array
 }
 
 /**
- * Scans ZIP entries for photo files within step directories.
- * Step directories follow the pattern: <step-slug>_<step-id>/photos/<filename>
+ * Scans ZIP entries for photo files within chapter directories.
+ * Chapter directories follow the pattern: <slug>_<id>/photos/<filename>
  */
 export function collectPhotos(
   entries: ZipEntries,
@@ -26,14 +26,14 @@ export function collectPhotos(
     if (data.length === 0) continue
 
     const relPath = path.slice(tripDirPath.length)
-    // Match: <step-slug>_<step-id>/photos/<filename>
+    // Match: <slug>_<id>/photos/<filename>
     const match = relPath.match(/^[^/]+_(\d+)\/photos\/([^/]+)$/)
     if (!match) continue
 
-    const stepId = parseInt(match[1], 10)
+    const chapterId = parseInt(match[1], 10)
     const filename = match[2]
 
-    photos.push({ tripId, stepId, filename, data })
+    photos.push({ tripId, chapterId, filename, data })
   }
 
   return photos

@@ -1,3 +1,12 @@
+export function formatDate(timestamp: number): string {
+  const date = new Date(timestamp * 1000)
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
 export function formatDateRange(startDate: number, endDate: number): string {
   const start = new Date(startDate * 1000)
   const end = new Date(endDate * 1000)

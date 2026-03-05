@@ -1,19 +1,19 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { ImportPrompt } from "./import-prompt"
 import { ImportProgress } from "./import-progress"
-import { ImportSummary } from "./import-summary"
 import { ImportErrorView } from "./import-error"
 import { TripList } from "./trip-list"
 import { ExtractionSpinner } from "./extraction-spinner"
 import { TripSelectionList } from "./trip-selection-list"
 import { importTrip, shouldWarnAboutSize, scanTripsFromFile } from "../lib/import-trip"
 import { getAllTrips } from "@/stores/db"
-import { ImportError, type ImportState, type ImportProgress as ImportProgressData, type ImportResult, type TripSummary } from "@/types/import"
+import { ImportError, type ImportState, type ImportProgress as ImportProgressData, type TripSummary } from "@/types/import"
 import type { Trip } from "@/types/trip"
 
 const motionVariants = {
@@ -37,6 +37,7 @@ export function ImportFlow() {
   const headingRef = useRef<HTMLDivElement>(null)
   const importStartTime = useRef<number>(0)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -146,20 +147,16 @@ export function ImportFlow() {
 
       const elapsed = Date.now() - importStartTime.current
 
-      // If import was very fast (< 1 second), skip progress view
-      if (elapsed < 1000) {
-        setState({ status: "success", result })
-      } else {
-        // Brief hold at 100% before showing success
+      // Brief hold at 100% before navigating so the user sees completion
+      if (elapsed >= 1000) {
         setState({
           status: "importing",
           progress: { phase: "storing", percent: 100, detail: "Done" },
         })
         await new Promise((resolve) => setTimeout(resolve, 300))
-        setState({ status: "success", result })
       }
 
-      await loadTrips()
+      router.push(`/trip/${result.slug}`)
     } catch (err) {
       const importError =
         err instanceof ImportError
@@ -179,14 +176,6 @@ export function ImportFlow() {
     setState({ status: "idle" })
   }
 
-  function handleDone() {
-    setState({ status: "idle" })
-  }
-
-  function handleImportAnother() {
-    setState({ status: "idle" })
-  }
-
   function handleConfirmLargeFile() {
     if (state.status === "confirm-large-file") {
       setState({ status: "scanning", file: state.file })
@@ -195,18 +184,6 @@ export function ImportFlow() {
 
   function handleDismissSelection() {
     setState({ status: "idle" })
-  }
-
-  function handleTripClick(trip: Trip) {
-    const result: ImportResult = {
-      tripName: trip.name,
-      chapterCount: trip.chapterCount,
-      photoCount: trip.photoCount,
-      startDate: trip.startDate,
-      endDate: trip.endDate,
-      totalKm: trip.totalKm,
-    }
-    setState({ status: "viewing", result })
   }
 
   const variants = prefersReducedMotion ? reducedMotionVariants : motionVariants
@@ -242,7 +219,7 @@ export function ImportFlow() {
             exit="exit"
             transition={transition}
           >
-            <TripList trips={trips} onFileSelected={handleFileSelected} onTripClick={handleTripClick} />
+            <TripList trips={trips} onFileSelected={handleFileSelected} />
           </motion.div>
         )}
 
@@ -317,41 +294,6 @@ export function ImportFlow() {
             <ImportProgress
               tripName={tripName}
               progress={state.progress}
-            />
-          </motion.div>
-        )}
-
-        {state.status === "success" && (
-          <motion.div
-            key="success"
-            variants={variants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition}
-          >
-            <ImportSummary
-              result={state.result}
-              onImportAnother={handleImportAnother}
-              onDone={handleDone}
-            />
-          </motion.div>
-        )}
-
-        {state.status === "viewing" && (
-          <motion.div
-            key="viewing"
-            variants={variants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={transition}
-          >
-            <ImportSummary
-              result={state.result}
-              mode="viewing"
-              onImportAnother={handleImportAnother}
-              onDone={handleDone}
             />
           </motion.div>
         )}

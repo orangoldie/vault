@@ -83,6 +83,11 @@ export async function getTrip(id: number): Promise<Trip | undefined> {
   return db.get("trips", id)
 }
 
+export async function getTripBySlug(slug: string): Promise<Trip | undefined> {
+  const trips = await getAllTrips()
+  return trips.find((t) => t.slug === slug)
+}
+
 export async function getAllTrips(): Promise<Trip[]> {
   const db = await getDb()
   return db.getAll("trips")

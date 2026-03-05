@@ -5,6 +5,12 @@ import userEvent from "@testing-library/user-event"
 import { ImportFlow } from "@/features/import/components/import-flow"
 import { ImportError } from "@/types/import"
 
+const mockPush = vi.fn()
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
+
 // Mock the import lib and db
 vi.mock("@/features/import/lib/import-trip", () => ({
   importTrip: vi.fn(),
@@ -41,6 +47,7 @@ function setupSingleTripScan() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockPush.mockClear()
   mockGetAllTrips.mockResolvedValue([])
   mockShouldWarnAboutSize.mockReturnValue(null)
   setupSingleTripScan()
@@ -84,7 +91,7 @@ describe("ImportFlow", () => {
     expect(screen.getByText("10 chapters")).toBeInTheDocument()
   })
 
-  it("shows trip summary when clicking a trip on the trip list", async () => {
+  it("renders trip cards as links to trip detail pages", async () => {
     mockGetAllTrips.mockResolvedValue([
       {
         id: 1,
@@ -108,30 +115,15 @@ describe("ImportFlow", () => {
       expect(screen.getByText("Existing Trip")).toBeInTheDocument()
     })
 
-    // Click the trip card
-    await userEvent.click(screen.getByText("Existing Trip"))
-
-    // Should show the summary view with trip details but no success message
-    await waitFor(() => {
-      expect(screen.getByText("10 chapters")).toBeInTheDocument()
-      expect(screen.getByText("50 photos")).toBeInTheDocument()
-      expect(screen.getByText("1,000 km")).toBeInTheDocument()
-    })
-    expect(screen.queryByText("imported successfully")).not.toBeInTheDocument()
-    expect(screen.queryByText("Import Another")).not.toBeInTheDocument()
-
-    // Click Back to go back to trip list
-    await userEvent.click(screen.getByRole("button", { name: /Back/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText("Existing Trip")).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: /Import Trip/i })).toBeInTheDocument()
-    })
+    // Trip card should be a link to the detail page
+    const link = screen.getByRole("link", { name: /Existing Trip/i })
+    expect(link).toHaveAttribute("href", "/trip/existing")
   })
 
-  it("transitions to success state after a fast import", async () => {
+  it("navigates to trip detail after a fast import", async () => {
     mockImportTrip.mockResolvedValue({
       tripName: "My Adventure",
+      slug: "my-adventure",
       chapterCount: 5,
       photoCount: 0,
       startDate: 1700000000,
@@ -147,7 +139,6 @@ describe("ImportFlow", () => {
       ).toBeInTheDocument()
     })
 
-    // Simulate file selection
     const input = screen.getByLabelText(
       "Select travel export ZIP file"
     ) as HTMLInputElement
@@ -155,10 +146,8 @@ describe("ImportFlow", () => {
 
     await userEvent.upload(input, file)
 
-    // Should show success
     await waitFor(() => {
-      expect(screen.getByText("My Adventure")).toBeInTheDocument()
-      expect(screen.getByText("imported successfully")).toBeInTheDocument()
+      expect(mockPush).toHaveBeenCalledWith("/trip/my-adventure")
     })
   })
 
@@ -242,39 +231,6 @@ describe("ImportFlow", () => {
     })
   })
 
-  it("returns to idle state when Done is clicked after success", async () => {
-    mockImportTrip.mockResolvedValue({
-      tripName: "Trip",
-      chapterCount: 1,
-      photoCount: 0,
-      startDate: 1700000000,
-      endDate: 1700500000,
-      totalKm: 100,
-    })
-
-    render(<ImportFlow />)
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /Import Trip/i })
-      ).toBeInTheDocument()
-    })
-
-    const input = screen.getByLabelText(
-      "Select travel export ZIP file"
-    ) as HTMLInputElement
-    await userEvent.upload(input, new File(["z"], "t.zip"))
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Done/i })).toBeInTheDocument()
-    })
-
-    await userEvent.click(screen.getByRole("button", { name: /Done/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText("Journey Vault")).toBeInTheDocument()
-    })
-  })
 
   it("shows large file warning for files over 500 MB", async () => {
     mockShouldWarnAboutSize.mockReturnValue(600)
@@ -304,6 +260,7 @@ describe("ImportFlow", () => {
     mockShouldWarnAboutSize.mockReturnValue(600)
     mockImportTrip.mockResolvedValue({
       tripName: "Big Trip",
+      slug: "big-trip",
       chapterCount: 100,
       photoCount: 500,
       startDate: 1700000000,
@@ -333,8 +290,7 @@ describe("ImportFlow", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText("Big Trip")).toBeInTheDocument()
-      expect(screen.getByText("imported successfully")).toBeInTheDocument()
+      expect(mockPush).toHaveBeenCalledWith("/trip/big-trip")
     })
   })
 
@@ -404,9 +360,12 @@ describe("ImportFlow", () => {
     // setupSingleTripScan() is already configured in beforeEach
     mockImportTrip.mockResolvedValue({
       tripName: "Test Trip",
+      slug: "test-trip",
       photoCount: 3,
       chapterCount: 1,
       totalKm: 100,
+      startDate: 1700000000,
+      endDate: 1700500000,
     })
 
     render(<ImportFlow />)
@@ -528,6 +487,7 @@ describe("ImportFlow", () => {
     ])
     mockImportTrip.mockResolvedValue({
       tripName: "Trip Two",
+      slug: "trip-two",
       chapterCount: 3,
       photoCount: 10,
       startDate: 1700000000,
@@ -553,7 +513,7 @@ describe("ImportFlow", () => {
     const tripTwoCard = screen.getByRole("button", { name: /Trip Two/i })
     await userEvent.click(tripTwoCard)
 
-    // Should import and show success
+    // Should import and navigate to trip detail
     await waitFor(() => {
       expect(mockImportTrip).toHaveBeenCalledWith(
         expect.any(File),
@@ -562,8 +522,7 @@ describe("ImportFlow", () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText("Trip Two")).toBeInTheDocument()
-      expect(screen.getByText("imported successfully")).toBeInTheDocument()
+      expect(mockPush).toHaveBeenCalledWith("/trip/trip-two")
     })
   })
 

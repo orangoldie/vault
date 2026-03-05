@@ -129,6 +129,7 @@ export async function importTrip(
 
   return {
     tripName: trip.name,
+    slug: trip.slug,
     chapterCount: chapters.length,
     photoCount: totalPhotos,
     startDate: trip.startDate,

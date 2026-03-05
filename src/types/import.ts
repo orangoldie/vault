@@ -17,6 +17,7 @@ export interface ImportProgress {
 
 export interface ImportResult {
   tripName: string
+  slug: string
   chapterCount: number
   photoCount: number
   startDate: number
@@ -55,6 +56,4 @@ export type ImportState =
   | { status: "scanning"; file: File }
   | { status: "selecting"; file: File; trips: TripSummary[] }
   | { status: "importing"; progress: ImportProgress }
-  | { status: "success"; result: ImportResult }
-  | { status: "viewing"; result: ImportResult }
   | { status: "error"; error: ImportError }

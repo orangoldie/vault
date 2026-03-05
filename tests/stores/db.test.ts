@@ -11,6 +11,7 @@ import {
   saveChapters,
   savePhoto,
   getTrip,
+  getTripBySlug,
   getAllTrips,
   getChaptersByTrip,
   getPhotosByTrip,
@@ -194,6 +195,28 @@ describe("db", () => {
       filename: photo.filename,
     })
     expect(photos[0]).not.toHaveProperty("blob")
+  })
+
+  it("gets a trip by slug", async () => {
+    await saveTrip(makeTripFixture({ id: 1, slug: "my-trip" }))
+    await saveTrip(makeTripFixture({ id: 2, slug: "other-trip", name: "Other" }))
+
+    const trip = await getTripBySlug("my-trip")
+    expect(trip).toBeDefined()
+    expect(trip?.id).toBe(1)
+    expect(trip?.slug).toBe("my-trip")
+  })
+
+  it("returns undefined for non-existent slug", async () => {
+    await saveTrip(makeTripFixture({ id: 1, slug: "my-trip" }))
+
+    const trip = await getTripBySlug("does-not-exist")
+    expect(trip).toBeUndefined()
+  })
+
+  it("returns undefined from getTripBySlug when no trips exist", async () => {
+    const trip = await getTripBySlug("anything")
+    expect(trip).toBeUndefined()
   })
 
   it("deletes trip chapters when deleting a trip", async () => {

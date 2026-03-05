@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+import Link from "next/link"
 import { Upload, MapPin, ImageIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -10,10 +11,9 @@ import type { Trip } from "@/types/trip"
 interface TripListProps {
   trips: Trip[]
   onFileSelected: (file: File) => void
-  onTripClick: (trip: Trip) => void
 }
 
-export function TripList({ trips, onFileSelected, onTripClick }: TripListProps) {
+export function TripList({ trips, onFileSelected }: TripListProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleClick() {
@@ -36,10 +36,9 @@ export function TripList({ trips, onFileSelected, onTripClick }: TripListProps) 
 
       <div className="flex w-full flex-col gap-3">
         {trips.map((trip) => (
-          <button
+          <Link
             key={trip.id}
-            type="button"
-            onClick={() => onTripClick(trip)}
+            href={`/trip/${trip.slug}`}
             className="w-full rounded-xl border border-border bg-surface p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <h3
@@ -61,7 +60,7 @@ export function TripList({ trips, onFileSelected, onTripClick }: TripListProps) 
                 {trip.photoCount} photos
               </span>
             </div>
-          </button>
+          </Link>
         ))}
       </div>
 

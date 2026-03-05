@@ -1,0 +1,107 @@
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import { motion } from "framer-motion"
+
+import { useTripDetail } from "../lib/use-trip-detail"
+import { BackButton } from "./back-button"
+import { HeroCover } from "./hero-cover"
+import { TripHeader } from "./trip-header"
+import { ChapterTimeline } from "./chapter-timeline"
+import { TripNotFound } from "./trip-not-found"
+import { TripDetailError } from "./trip-detail-error"
+import { TripDetailSkeleton } from "./trip-detail-skeleton"
+
+interface TripDetailPageProps {
+  slug: string
+}
+
+export function TripDetailPage({ slug }: TripDetailPageProps) {
+  const { status, trip, chapters, coverPhotoUrl, retry } = useTripDetail(slug)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setPrefersReducedMotion(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
+
+  // Focus management after state transitions
+  useEffect(() => {
+    if (
+      status === "success" ||
+      status === "not-found" ||
+      status === "error"
+    ) {
+      requestAnimationFrame(() => {
+        const h1 = containerRef.current?.querySelector("h1")
+        if (h1) {
+          h1.setAttribute("tabindex", "-1")
+          h1.focus()
+        }
+      })
+    }
+  }, [status])
+
+  const hasCover = Boolean(coverPhotoUrl)
+
+  const motionProps = prefersReducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0 } as const,
+        animate: { opacity: 1 } as const,
+        transition: { duration: 0.25, ease: [0.45, 0, 0.55, 1] as const },
+      }
+
+  return (
+    <div ref={containerRef} aria-live="polite">
+      {/* Skip to content link */}
+      <a
+        href="#trip-header"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-16 focus:z-40 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to content
+      </a>
+
+      <BackButton hasCover={status === "success" && hasCover} />
+
+      {status === "loading" && <TripDetailSkeleton />}
+
+      {status === "not-found" && (
+        <motion.div {...motionProps}>
+          <TripNotFound />
+        </motion.div>
+      )}
+
+      {status === "error" && (
+        <motion.div {...motionProps}>
+          <TripDetailError onRetry={retry} />
+        </motion.div>
+      )}
+
+      {status === "success" && trip && chapters && (
+        <motion.div {...motionProps}>
+          {hasCover && (
+            <HeroCover
+              coverPhotoUrl={coverPhotoUrl ?? null}
+              tripName={trip.name}
+            />
+          )}
+
+          <div className="mx-auto w-full max-w-[720px] px-4 py-8 md:px-8">
+            <div className="flex flex-col gap-8">
+              <TripHeader
+                trip={trip}
+                hasCover={hasCover}
+              />
+              <ChapterTimeline chapters={chapters} />
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  )
+}

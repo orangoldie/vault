@@ -22,5 +22,6 @@ Write a `review.md` file to `.specify/specs/<feature-slug>/review.md` with:
 
 - Be constructive and specific
 - Reference file paths and line numbers
-- Distinguish between "must fix" and "nice to have"
+- Classify each issue as **high**, **medium**, or **low** severity
+- Distinguish between "must fix" (high/medium) and "nice to have" (low)
 - Do not modify any code — only review and suggest

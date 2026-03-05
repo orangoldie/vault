@@ -28,3 +28,4 @@ After writing tests, produce a `qa-report.md` at `.specify/specs/<feature-slug>/
 - Prefer integration tests for user flows, unit tests for logic
 - Never test implementation details — test behavior
 - Co-locate tests next to source files
+- Classify any issues found as **high**, **medium**, or **low** severity

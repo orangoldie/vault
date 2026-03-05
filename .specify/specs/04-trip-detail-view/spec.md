@@ -4,6 +4,10 @@
 
 Display a single imported trip as a scrollable page with a trip header and chronological chapter timeline (text content only, no photos). This is the core viewing experience that gives users a window into their archived memories.
 
+## Experience Intent
+
+The trip detail view should feel like opening a travel journal, not reading a log file. The user's first impression is a full-bleed cover photo and trip title — immersive and emotional. Chapters are explored sequentially, one at a time or in small groups, with a sense of progression. The design should reward the user for having recorded their trip, not make them work to consume it. Prioritize visual impact and pacing over information density.
+
 ## Problem
 
 Users can import their travel data, but have no way to actually see their memories. The trip list shows only names and stats. The places, dates, descriptions, and weather that make a trip meaningful are locked inside IndexedDB with no way to experience them. Without a detail view, the app is an archive with no window.

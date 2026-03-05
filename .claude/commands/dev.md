@@ -19,7 +19,7 @@ When asked to plan, produce a `plan.md` file at `.specify/specs/<feature-slug>/p
 
 When asked to implement, write code directly to the project:
 
-- Write clean, idiomatic code following project conventions
+- Write clean, idiomatic, secure code following project conventions
 - Implement all acceptance criteria from the spec
 - Match the UI/UX defined in design.md
 - Do not over-engineer

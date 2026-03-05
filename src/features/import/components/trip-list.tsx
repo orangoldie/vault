@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { Upload, MapPin, ImageIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -8,10 +9,25 @@ import type { Trip } from "@/types/trip"
 
 interface TripListProps {
   trips: Trip[]
-  onImport: () => void
+  onFileSelected: (file: File) => void
+  onTripClick: (trip: Trip) => void
 }
 
-export function TripList({ trips, onImport }: TripListProps) {
+export function TripList({ trips, onFileSelected, onTripClick }: TripListProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function handleClick() {
+    inputRef.current?.click()
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) {
+      onFileSelected(file)
+      e.target.value = ""
+    }
+  }
+
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <h1 className="text-[1.875rem] font-semibold leading-[1.2] tracking-[-0.02em] text-primary">
@@ -20,9 +36,11 @@ export function TripList({ trips, onImport }: TripListProps) {
 
       <div className="flex w-full flex-col gap-3">
         {trips.map((trip) => (
-          <div
+          <button
             key={trip.id}
-            className="rounded-xl border border-border bg-surface p-4 shadow-sm"
+            type="button"
+            onClick={() => onTripClick(trip)}
+            className="w-full rounded-xl border border-border bg-surface p-4 text-left shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <h3
               dir="auto"
@@ -43,17 +61,26 @@ export function TripList({ trips, onImport }: TripListProps) {
                 {trip.photoCount} photos
               </span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
       <Button
-        onClick={onImport}
+        onClick={handleClick}
         className="h-11 gap-1 px-6 text-base font-medium shadow-sm"
       >
         <Upload className="size-5" />
         Import Trip
       </Button>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".zip"
+        onChange={handleChange}
+        className="hidden"
+        aria-label="Select travel export ZIP file"
+      />
     </div>
   )
 }

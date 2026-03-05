@@ -9,9 +9,11 @@ import { ImportProgress } from "./import-progress"
 import { ImportSummary } from "./import-summary"
 import { ImportErrorView } from "./import-error"
 import { TripList } from "./trip-list"
-import { importTrip, shouldWarnAboutSize } from "../lib/import-trip"
+import { ExtractionSpinner } from "./extraction-spinner"
+import { TripSelectionList } from "./trip-selection-list"
+import { importTrip, shouldWarnAboutSize, scanTripsFromFile } from "../lib/import-trip"
 import { getAllTrips } from "@/stores/db"
-import { ImportError, type ImportState, type ImportProgress as ImportProgressData } from "@/types/import"
+import { ImportError, type ImportState, type ImportProgress as ImportProgressData, type ImportResult, type TripSummary } from "@/types/import"
 import type { Trip } from "@/types/trip"
 
 const motionVariants = {
@@ -64,6 +66,54 @@ export function ImportFlow() {
     }
   }, [state.status])
 
+  // Scan phase: triggered when state becomes "scanning"
+  useEffect(() => {
+    if (state.status !== "scanning") return
+
+    let cancelled = false
+    const file = state.file
+
+    async function runScan() {
+      try {
+        const scanStart = Date.now()
+        const tripSummaries = await scanTripsFromFile(file)
+
+        // Ensure spinner shows for at least 400ms to avoid a jarring flash
+        const elapsed = Date.now() - scanStart
+        if (elapsed < 400) {
+          await new Promise((r) => setTimeout(r, 400 - elapsed))
+        }
+
+        if (cancelled) return
+
+        if (tripSummaries.length === 0) {
+          setState({
+            status: "error",
+            error: new ImportError("MISSING_TRIP_JSON", "No trip.json found in ZIP"),
+          })
+        } else if (tripSummaries.length === 1) {
+          // Single trip: skip selection, import directly
+          startImport(file, tripSummaries[0].tripDirPath)
+        } else {
+          setState({ status: "selecting", file, trips: tripSummaries })
+        }
+      } catch (err) {
+        if (cancelled) return
+        const importError =
+          err instanceof ImportError
+            ? err
+            : new ImportError("UNKNOWN", "An unexpected error occurred")
+        setState({ status: "error", error: importError })
+      }
+    }
+
+    runScan()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status])
+
   async function handleFileSelected(file: File) {
     // Check file size warning
     const sizeMb = shouldWarnAboutSize(file)
@@ -72,10 +122,10 @@ export function ImportFlow() {
       return
     }
 
-    await startImport(file)
+    setState({ status: "scanning", file })
   }
 
-  async function startImport(file: File) {
+  async function startImport(file: File, tripDirPath: string) {
     setTripName(null)
     importStartTime.current = Date.now()
 
@@ -86,6 +136,7 @@ export function ImportFlow() {
 
     try {
       const result = await importTrip(file, {
+        tripDirPath,
         onProgress: (progress: ImportProgressData) => {
           setState({ status: "importing", progress })
         },
@@ -119,6 +170,11 @@ export function ImportFlow() {
     }
   }
 
+  function handleTripSelected(trip: TripSummary) {
+    if (state.status !== "selecting") return
+    startImport(state.file, trip.tripDirPath)
+  }
+
   function handleRetry() {
     setState({ status: "idle" })
   }
@@ -133,8 +189,24 @@ export function ImportFlow() {
 
   function handleConfirmLargeFile() {
     if (state.status === "confirm-large-file") {
-      startImport(state.file)
+      setState({ status: "scanning", file: state.file })
     }
+  }
+
+  function handleDismissSelection() {
+    setState({ status: "idle" })
+  }
+
+  function handleTripClick(trip: Trip) {
+    const result: ImportResult = {
+      tripName: trip.name,
+      chapterCount: trip.chapterCount,
+      photoCount: trip.photoCount,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      totalKm: trip.totalKm,
+    }
+    setState({ status: "viewing", result })
   }
 
   const variants = prefersReducedMotion ? reducedMotionVariants : motionVariants
@@ -170,7 +242,7 @@ export function ImportFlow() {
             exit="exit"
             transition={transition}
           >
-            <TripList trips={trips} onImport={handleRetry} />
+            <TripList trips={trips} onFileSelected={handleFileSelected} onTripClick={handleTripClick} />
           </motion.div>
         )}
 
@@ -203,6 +275,36 @@ export function ImportFlow() {
           </motion.div>
         )}
 
+        {state.status === "scanning" && (
+          <motion.div
+            key="scanning"
+            variants={variants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={transition}
+          >
+            <ExtractionSpinner />
+          </motion.div>
+        )}
+
+        {state.status === "selecting" && (
+          <motion.div
+            key="selecting"
+            variants={variants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={transition}
+          >
+            <TripSelectionList
+              trips={state.trips}
+              onSelectTrip={handleTripSelected}
+              onDismiss={handleDismissSelection}
+            />
+          </motion.div>
+        )}
+
         {state.status === "importing" && (
           <motion.div
             key="progress"
@@ -230,6 +332,24 @@ export function ImportFlow() {
           >
             <ImportSummary
               result={state.result}
+              onImportAnother={handleImportAnother}
+              onDone={handleDone}
+            />
+          </motion.div>
+        )}
+
+        {state.status === "viewing" && (
+          <motion.div
+            key="viewing"
+            variants={variants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={transition}
+          >
+            <ImportSummary
+              result={state.result}
+              mode="viewing"
               onImportAnother={handleImportAnother}
               onDone={handleDone}
             />

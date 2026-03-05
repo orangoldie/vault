@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleCheck, MapPin, ImageIcon, Calendar, Route } from "lucide-react"
+import { ArrowLeft, CircleCheck, MapPin, ImageIcon, Calendar, Route } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { formatDateRange } from "@/lib/format-date"
@@ -8,6 +8,7 @@ import type { ImportResult } from "@/types/import"
 
 interface ImportSummaryProps {
   result: ImportResult
+  mode?: "import" | "viewing"
   onImportAnother: () => void
   onDone: () => void
 }
@@ -18,12 +19,15 @@ function formatDistance(km: number): string {
 
 export function ImportSummary({
   result,
+  mode = "import",
   onImportAnother,
   onDone,
 }: ImportSummaryProps) {
   return (
     <div className="flex flex-col items-center gap-6 text-center">
-      <CircleCheck className="size-12 text-success" strokeWidth={1.5} />
+      {mode === "import" && (
+        <CircleCheck className="size-12 text-success" strokeWidth={1.5} />
+      )}
 
       <div className="flex flex-col items-center gap-1">
         <h2
@@ -32,7 +36,9 @@ export function ImportSummary({
         >
           <bdi>{result.tripName}</bdi>
         </h2>
-        <p className="text-base text-muted-foreground">imported successfully</p>
+        {mode === "import" && (
+          <p className="text-base text-muted-foreground">imported successfully</p>
+        )}
       </div>
 
       <div className="w-full rounded-xl border border-border bg-surface p-6 shadow-md">
@@ -51,7 +57,7 @@ export function ImportSummary({
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium text-primary">
+            <span className="text-sm font-medium text-primary whitespace-nowrap">
               {formatDateRange(result.startDate, result.endDate)}
             </span>
           </div>
@@ -64,14 +70,21 @@ export function ImportSummary({
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={onImportAnother} className="h-11 px-6">
-          Import Another
+      {mode === "import" ? (
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onImportAnother} className="h-11 px-6">
+            Import Another
+          </Button>
+          <Button onClick={onDone} className="h-11 px-6">
+            Done
+          </Button>
+        </div>
+      ) : (
+        <Button variant="outline" onClick={onDone} className="h-11 gap-1 px-6">
+          <ArrowLeft className="size-4" />
+          Back
         </Button>
-        <Button onClick={onDone} className="h-11 px-6">
-          Done
-        </Button>
-      </div>
+      )}
     </div>
   )
 }

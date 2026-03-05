@@ -38,34 +38,34 @@ const mockTrips: Trip[] = [
 
 describe("TripList", () => {
   it("renders the app name heading", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     expect(screen.getByText("Journey Vault")).toBeInTheDocument()
   })
 
   it("renders all trips", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     expect(screen.getByText("Summer in Europe")).toBeInTheDocument()
     expect(screen.getByText("אלי ואורן במזרח")).toBeInTheDocument()
   })
 
   it("renders chapter count for each trip", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     expect(screen.getByText("32 chapters")).toBeInTheDocument()
     expect(screen.getByText("56 chapters")).toBeInTheDocument()
   })
 
   it("renders photo count for each trip", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     expect(screen.getByText("148 photos")).toBeInTheDocument()
     expect(screen.getByText("213 photos")).toBeInTheDocument()
   })
 
   it("renders date ranges for trips", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     // Check that year info is present for each trip
     expect(screen.getByText(/2024/)).toBeInTheDocument()
@@ -73,7 +73,7 @@ describe("TripList", () => {
   })
 
   it("wraps trip names in bdi for RTL support", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     const hebrewName = screen.getByText("אלי ואורן במזרח")
     expect(hebrewName.tagName).toBe("BDI")
@@ -81,23 +81,51 @@ describe("TripList", () => {
   })
 
   it("renders an Import Trip button", () => {
-    render(<TripList trips={mockTrips} onImport={vi.fn()} />)
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     expect(
       screen.getByRole("button", { name: /Import Trip/i })
     ).toBeInTheDocument()
   })
 
-  it("calls onImport when Import Trip is clicked", async () => {
-    const onImport = vi.fn()
-    render(<TripList trips={mockTrips} onImport={onImport} />)
+  it("opens file picker when Import Trip is clicked and calls onFileSelected", async () => {
+    const onFileSelected = vi.fn()
+    render(<TripList trips={mockTrips} onFileSelected={onFileSelected} onTripClick={vi.fn()} />)
 
-    await userEvent.click(screen.getByRole("button", { name: /Import Trip/i }))
-    expect(onImport).toHaveBeenCalledOnce()
+    const input = screen.getByLabelText("Select travel export ZIP file") as HTMLInputElement
+    const file = new File(["zip"], "export.zip", { type: "application/zip" })
+    await userEvent.upload(input, file)
+
+    expect(onFileSelected).toHaveBeenCalledWith(file)
+  })
+
+  it("has a hidden file input that accepts .zip files", () => {
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
+
+    const input = screen.getByLabelText("Select travel export ZIP file") as HTMLInputElement
+    expect(input).toHaveAttribute("type", "file")
+    expect(input).toHaveAttribute("accept", ".zip")
+    expect(input).toHaveClass("hidden")
+  })
+
+  it("calls onTripClick when a trip card is clicked", async () => {
+    const onTripClick = vi.fn()
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={onTripClick} />)
+
+    await userEvent.click(screen.getByText("Summer in Europe"))
+    expect(onTripClick).toHaveBeenCalledWith(mockTrips[0])
+  })
+
+  it("renders trip cards as buttons", () => {
+    render(<TripList trips={mockTrips} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
+
+    const buttons = screen.getAllByRole("button")
+    // 2 trip cards + 1 Import Trip button = 3
+    expect(buttons.length).toBe(3)
   })
 
   it("renders an empty list when no trips", () => {
-    render(<TripList trips={[]} onImport={vi.fn()} />)
+    render(<TripList trips={[]} onFileSelected={vi.fn()} onTripClick={vi.fn()} />)
 
     expect(screen.getByText("Journey Vault")).toBeInTheDocument()
     expect(

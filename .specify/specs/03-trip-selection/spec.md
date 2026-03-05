@@ -23,9 +23,10 @@ A travel data export ZIP typically contains multiple trips, but the current impo
 - [ ] Trips already present in the vault (matched by trip `id`) are visually marked (e.g., "Already imported" label)
 - [ ] Tapping an already-imported trip shows a confirmation prompt (e.g., "This trip is already in your vault. Import again to update it?") before proceeding
 - [ ] The user taps a trip to begin importing it (single selection, not batch)
-- [ ] After a successful import, the user is taken to the imported trip's detail view
-- [ ] The user can dismiss the selection screen to return to the trip list / import prompt without importing anything
-- [ ] If the ZIP contains zero valid trips, the existing "no trip found" error is shown
+- [ ] After a successful import, the user sees the existing import success summary (the detail view is added in spec 04)
+- [ ] The user can dismiss the selection screen to return to the previous screen (import prompt or vault trip list, depending on context) without importing anything
+- [ ] If some trip directories in the ZIP have invalid or unreadable data, they are silently skipped — only valid trips appear in the selection list
+- [ ] If the ZIP contains zero valid trips (all skipped or none found), the existing "no trip found" error is shown
 - [ ] The selection screen supports RTL/LTR trip names (`dir="auto"`, `<bdi>`)
 - [ ] The large file warning (>500 MB) still appears before extraction, as it does today
 - [ ] Trip names in the selection list are sanitized (no raw HTML)

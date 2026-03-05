@@ -24,6 +24,21 @@ export interface ImportResult {
   totalKm: number
 }
 
+/** Metadata-only representation returned by scanTrips(). No photos, no full chapter data. */
+export interface ScannedTrip {
+  id: number
+  name: string
+  startDate: number
+  endDate: number
+  chapterCount: number
+  tripDirPath: string
+}
+
+/** ScannedTrip enriched with vault context. Returned by scanTripsFromFile(). */
+export interface TripSummary extends ScannedTrip {
+  alreadyImported: boolean
+}
+
 export class ImportError extends Error {
   code: ImportErrorCode
 
@@ -37,6 +52,9 @@ export class ImportError extends Error {
 export type ImportState =
   | { status: "idle" }
   | { status: "confirm-large-file"; file: File; sizeMb: number }
+  | { status: "scanning"; file: File }
+  | { status: "selecting"; file: File; trips: TripSummary[] }
   | { status: "importing"; progress: ImportProgress }
   | { status: "success"; result: ImportResult }
+  | { status: "viewing"; result: ImportResult }
   | { status: "error"; error: ImportError }

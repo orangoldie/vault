@@ -1,6 +1,6 @@
 import type { RawTrip } from "@/types/travel-export"
 import type { Trip, Chapter } from "@/types/trip"
-import { ImportError } from "@/types/import"
+import { ImportError, type ScannedTrip } from "@/types/import"
 import type { ZipEntries } from "./extract-zip"
 
 /** Strip HTML tags from text to prevent XSS */
@@ -9,46 +9,55 @@ function sanitizeText(text: string | null | undefined): string {
   return text.replace(/<[^>]*>/g, "")
 }
 
-interface TripDirectory {
-  path: string
-  tripJson: RawTrip
-}
+/** Find all trip.json paths in the ZIP without parsing them */
+function findTripJsonPaths(entries: ZipEntries): { path: string; entryKey: string }[] {
+  const results: { path: string; entryKey: string }[] = []
 
-function findTripDirectories(entries: ZipEntries): TripDirectory[] {
-  const tripDirs: TripDirectory[] = []
-  const decoder = new TextDecoder()
-
-  for (const [path, data] of Object.entries(entries)) {
+  for (const entryKey of Object.keys(entries)) {
     // Match patterns like trip/<slug>_<id>/trip.json or user_data/trip/<slug>_<id>/trip.json
-    const match = path.match(/(?:^|\/)(trip\/[^/]+\/)trip\.json$/)
-    if (!match) continue
-
-    try {
-      const json = decoder.decode(data)
-      const parsed = JSON.parse(json) as RawTrip
-      tripDirs.push({ path: match[1], tripJson: parsed })
-    } catch {
-      throw new ImportError("MALFORMED_JSON", "trip.json contains invalid JSON")
+    const match = entryKey.match(/(?:^|\/)(trip\/[^/]+\/)trip\.json$/)
+    if (match) {
+      results.push({ path: match[1], entryKey })
     }
   }
 
-  return tripDirs
+  return results
 }
 
-function selectTrip(dirs: TripDirectory[]): TripDirectory {
-  if (dirs.length === 0) {
-    throw new ImportError("MISSING_TRIP_JSON", "No trip.json found in ZIP")
+/**
+ * Scan all trip directories in the ZIP and return lightweight metadata.
+ * Silently skips directories with invalid or unreadable data.
+ * Returns trips sorted newest-first (descending by start date).
+ */
+export function scanTrips(entries: ZipEntries): ScannedTrip[] {
+  const decoder = new TextDecoder()
+  const tripPaths = findTripJsonPaths(entries)
+  const results: ScannedTrip[] = []
+
+  for (const { path, entryKey } of tripPaths) {
+    try {
+      const json = decoder.decode(entries[entryKey])
+      const raw = JSON.parse(json) as RawTrip
+
+      if (!raw.id || !raw.start_date || !raw.end_date || !raw.all_steps || raw.all_steps.length === 0) continue
+
+      results.push({
+        id: raw.id,
+        name: sanitizeText(raw.name),
+        startDate: raw.start_date,
+        endDate: raw.end_date,
+        chapterCount: raw.step_count ?? raw.all_steps.length,
+        tripDirPath: path,
+      })
+    } catch {
+      // Silently skip directories with invalid data
+    }
   }
 
-  // Sort by start_date (earliest first), fallback to alphabetical directory name
-  dirs.sort((a, b) => {
-    const dateA = a.tripJson.start_date ?? Infinity
-    const dateB = b.tripJson.start_date ?? Infinity
-    if (dateA !== dateB) return dateA - dateB
-    return a.path.localeCompare(b.path)
-  })
+  // Sort newest-first (descending by start date)
+  results.sort((a, b) => b.startDate - a.startDate)
 
-  return dirs[0]
+  return results
 }
 
 function resolveCoverPhotoId(
@@ -88,16 +97,28 @@ export interface ParsedTripData {
   tripDirPath: string
 }
 
-export function parseTrip(entries: ZipEntries): ParsedTripData {
-  const dirs = findTripDirectories(entries)
-  const selected = selectTrip(dirs)
-  const raw = selected.tripJson
+export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripData {
+  const tripJsonPaths = findTripJsonPaths(entries)
+  const match = tripJsonPaths.find((p) => p.path === tripDirPath)
+
+  if (!match) {
+    throw new ImportError("MISSING_TRIP_JSON", "No trip.json found in ZIP")
+  }
+
+  let raw: RawTrip
+  try {
+    const decoder = new TextDecoder()
+    const json = decoder.decode(entries[match.entryKey])
+    raw = JSON.parse(json) as RawTrip
+  } catch {
+    throw new ImportError("MALFORMED_JSON", "trip.json contains invalid JSON")
+  }
 
   if (!raw.all_steps || raw.all_steps.length === 0) {
     throw new ImportError("EMPTY_TRIP", "This trip has no chapters")
   }
 
-  const coverPhotoId = resolveCoverPhotoId(raw, selected.path, entries)
+  const coverPhotoId = resolveCoverPhotoId(raw, tripDirPath, entries)
 
   const trip: Trip = {
     id: raw.id,
@@ -135,5 +156,5 @@ export function parseTrip(entries: ZipEntries): ParsedTripData {
     uuid: rawStep.uuid,
   }))
 
-  return { trip, chapters, tripDirPath: selected.path }
+  return { trip, chapters, tripDirPath }
 }

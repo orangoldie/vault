@@ -1,14 +1,15 @@
 import { extractZip } from "./extract-zip"
-import { parseTrip } from "./parse-trip"
+import { parseTrip, scanTrips } from "./parse-trip"
 import { collectPhotos } from "./collect-photos"
-import { saveTrip, saveChapters, savePhoto, getPhotosByTrip, getPhotosByIds, deletePhotos } from "@/stores/db"
+import { saveTrip, saveChapters, savePhoto, getPhotosByTrip, getPhotosByIds, deletePhotos, getAllTrips } from "@/stores/db"
 import { writePhoto, deletePhotoFiles } from "@/stores/photo-storage"
-import { ImportError, type ImportProgress, type ImportResult } from "@/types/import"
+import { ImportError, type ImportProgress, type ImportResult, type TripSummary } from "@/types/import"
 
 const SIZE_WARNING_THRESHOLD_MB = 500
 
 export interface ImportOptions {
   onProgress: (progress: ImportProgress) => void
+  tripDirPath: string
 }
 
 export function shouldWarnAboutSize(file: File): number | null {
@@ -16,9 +17,26 @@ export function shouldWarnAboutSize(file: File): number | null {
   return sizeMb > SIZE_WARNING_THRESHOLD_MB ? sizeMb : null
 }
 
+/**
+ * Scan a ZIP file for all valid trips and enrich with vault context.
+ * Returns TripSummary[] sorted newest-first.
+ */
+export async function scanTripsFromFile(file: File): Promise<TripSummary[]> {
+  const entries = await extractZip(file)
+  const scanned = scanTrips(entries)
+
+  const existingTrips = await getAllTrips()
+  const existingIds = new Set(existingTrips.map((t) => t.id))
+
+  return scanned.map((trip) => ({
+    ...trip,
+    alreadyImported: existingIds.has(trip.id),
+  }))
+}
+
 export async function importTrip(
   file: File,
-  { onProgress }: ImportOptions
+  { onProgress, tripDirPath }: ImportOptions
 ): Promise<ImportResult> {
   // Phase 1: Extract ZIP (10% of progress — fast)
   onProgress({ phase: "extracting", percent: 0, detail: "Extracting ZIP..." })
@@ -30,7 +48,7 @@ export async function importTrip(
   // Phase 2: Parse trip data (another 5% — fast)
   onProgress({ phase: "reading", percent: 8, detail: "Reading trip data..." })
 
-  const { trip, chapters, tripDirPath } = parseTrip(entries)
+  const { trip, chapters } = parseTrip(entries, tripDirPath)
 
   onProgress({ phase: "reading", percent: 10, detail: "Reading trip data..." })
 

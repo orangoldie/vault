@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import "fake-indexeddb/auto"
 
-import { shouldWarnAboutSize } from "@/features/import/lib/import-trip"
+import { shouldWarnAboutSize, scanTripsFromFile } from "@/features/import/lib/import-trip"
 import { getTrip, getPhotosByTrip, resetDb, saveTrip, saveChapters, savePhoto } from "@/stores/db"
 import type { ImportProgress } from "@/types/import"
 
@@ -104,6 +104,7 @@ describe("importTrip", () => {
     const progressUpdates: ImportProgress[] = []
     const result = await importTrip(file, {
       onProgress: (p) => progressUpdates.push({ ...p }),
+      tripDirPath: "trip/test-trip_1/",
     })
 
     expect(result.tripName).toBe("Test Trip")
@@ -129,6 +130,7 @@ describe("importTrip", () => {
     const progressUpdates: ImportProgress[] = []
     const result = await importTrip(file, {
       onProgress: (p) => progressUpdates.push({ ...p }),
+      tripDirPath: "trip/test-trip_1/",
     })
 
     expect(result.photoCount).toBe(2)
@@ -159,7 +161,7 @@ describe("importTrip", () => {
     const file = new File(["not a zip"], "test.zip")
 
     await expect(
-      importTrip(file, { onProgress: vi.fn() })
+      importTrip(file, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     ).rejects.toThrow("Failed to extract ZIP")
   })
 
@@ -171,7 +173,7 @@ describe("importTrip", () => {
     const file = new File(["zip"], "test.zip")
 
     await expect(
-      importTrip(file, { onProgress: vi.fn() })
+      importTrip(file, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     ).rejects.toThrow("No trip.json found")
   })
 
@@ -187,7 +189,7 @@ describe("importTrip", () => {
     mockExtractZip.mockResolvedValue(entries1)
 
     const file1 = new File(["zip"], "test.zip")
-    await importTrip(file1, { onProgress: vi.fn() })
+    await importTrip(file1, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     let keys = await getPhotosByTrip(1)
     expect(keys).toHaveLength(2)
 
@@ -199,7 +201,7 @@ describe("importTrip", () => {
     mockExtractZip.mockResolvedValue(entries2)
 
     const file2 = new File(["zip"], "test.zip")
-    await importTrip(file2, { onProgress: vi.fn() })
+    await importTrip(file2, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     keys = await getPhotosByTrip(1)
     expect(keys).toHaveLength(1)
     expect(keys).toContain("1-100-photo1.jpg")
@@ -228,7 +230,7 @@ describe("importTrip", () => {
     const file = new File(["zip"], "test.zip")
 
     await expect(
-      importTrip(file, { onProgress: vi.fn() })
+      importTrip(file, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     ).rejects.toThrow("Not enough storage space")
   })
 
@@ -252,7 +254,7 @@ describe("importTrip", () => {
     const file = new File(["zip"], "test.zip")
 
     await expect(
-      importTrip(file, { onProgress: vi.fn() })
+      importTrip(file, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     ).rejects.toThrow("IndexedDB write failed")
 
     // Best-effort OPFS cleanup should have been attempted
@@ -280,7 +282,7 @@ describe("importTrip", () => {
     const file = new File(["zip"], "test.zip")
 
     await expect(
-      importTrip(file, { onProgress: vi.fn() })
+      importTrip(file, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     ).rejects.toThrow("Not enough storage space")
   })
 
@@ -295,12 +297,46 @@ describe("importTrip", () => {
     const progressUpdates: ImportProgress[] = []
     await importTrip(file, {
       onProgress: (p) => progressUpdates.push({ ...p }),
+      tripDirPath: "trip/test-trip_1/",
     })
 
     // Should reach 100% even with 0 photos
     const lastUpdate = progressUpdates[progressUpdates.length - 1]
     expect(lastUpdate.percent).toBe(100)
     expect(lastUpdate.phase).toBe("storing")
+  })
+
+  it("uses the specified tripDirPath for import", async () => {
+    const encoder = new TextEncoder()
+    const tripA = JSON.stringify({
+      id: 1, name: "Trip A", slug: "trip-a", start_date: 1700000000, end_date: 1700500000,
+      summary: "", cover_photo: null, step_count: 1, total_km: 0, uuid: "a",
+      all_steps: [{ id: 100, trip_id: 1, display_name: "Ch A", description: null, slug: "ch-a",
+        start_time: 1700000000, end_time: 1700100000, location: { id: 1, name: "A", detail: "A",
+        full_detail: "A", country_code: "US", lat: 0, lon: 0, uuid: "l" }, weather_condition: null,
+        weather_temperature: null, uuid: "c" }],
+    })
+    const tripB = JSON.stringify({
+      id: 2, name: "Trip B", slug: "trip-b", start_date: 1800000000, end_date: 1800500000,
+      summary: "", cover_photo: null, step_count: 1, total_km: 0, uuid: "b",
+      all_steps: [{ id: 200, trip_id: 2, display_name: "Ch B", description: null, slug: "ch-b",
+        start_time: 1800000000, end_time: 1800100000, location: { id: 2, name: "B", detail: "B",
+        full_detail: "B", country_code: "US", lat: 0, lon: 0, uuid: "l2" }, weather_condition: null,
+        weather_temperature: null, uuid: "c2" }],
+    })
+
+    mockExtractZip.mockResolvedValue({
+      "trip/a_1/trip.json": encoder.encode(tripA),
+      "trip/b_2/trip.json": encoder.encode(tripB),
+    })
+
+    const file = new File(["zip"], "test.zip")
+    const result = await importTrip(file, { onProgress: vi.fn(), tripDirPath: "trip/b_2/" })
+
+    expect(result.tripName).toBe("Trip B")
+    const trip = await getTrip(2)
+    expect(trip).toBeDefined()
+    expect(trip?.name).toBe("Trip B")
   })
 
   it("preserves old data if import fails midway", async () => {
@@ -312,7 +348,7 @@ describe("importTrip", () => {
     mockExtractZip.mockResolvedValue(entries1)
 
     const file1 = new File(["zip"], "test.zip")
-    await importTrip(file1, { onProgress: vi.fn() })
+    await importTrip(file1, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
 
     // Second import with invalid data (no chapters)
     const noStepsTrip = JSON.stringify({
@@ -334,12 +370,77 @@ describe("importTrip", () => {
 
     const file2 = new File(["zip"], "test.zip")
     await expect(
-      importTrip(file2, { onProgress: vi.fn() })
+      importTrip(file2, { onProgress: vi.fn(), tripDirPath: "trip/test-trip_1/" })
     ).rejects.toThrow()
 
     // Original trip should still be intact
     const trip = await getTrip(1)
     expect(trip).toBeDefined()
     expect(trip?.name).toBe("Test Trip")
+  })
+})
+
+describe("scanTripsFromFile", () => {
+  it("returns trip summaries with alreadyImported flag", async () => {
+    const encoder = new TextEncoder()
+    const tripA = JSON.stringify({
+      id: 1, name: "Trip A", slug: "a", start_date: 1700000000, end_date: 1700500000,
+      summary: "", cover_photo: null, step_count: 2, total_km: 0, uuid: "a",
+      all_steps: [{ id: 100, trip_id: 1, display_name: "Ch", description: null, slug: "ch",
+        start_time: 1700000000, end_time: 1700100000, location: { id: 1, name: "X", detail: "X",
+        full_detail: "X", country_code: "US", lat: 0, lon: 0, uuid: "l" }, weather_condition: null,
+        weather_temperature: null, uuid: "c" }],
+    })
+    const tripB = JSON.stringify({
+      id: 2, name: "Trip B", slug: "b", start_date: 1800000000, end_date: 1800500000,
+      summary: "", cover_photo: null, step_count: 1, total_km: 0, uuid: "b",
+      all_steps: [{ id: 200, trip_id: 2, display_name: "Ch2", description: null, slug: "ch2",
+        start_time: 1800000000, end_time: 1800100000, location: { id: 2, name: "Y", detail: "Y",
+        full_detail: "Y", country_code: "US", lat: 0, lon: 0, uuid: "l2" }, weather_condition: null,
+        weather_temperature: null, uuid: "c2" }],
+    })
+
+    mockExtractZip.mockResolvedValue({
+      "trip/a_1/trip.json": encoder.encode(tripA),
+      "trip/b_2/trip.json": encoder.encode(tripB),
+    })
+
+    // Pre-save trip 1 so it should be marked as alreadyImported
+    await saveTrip({
+      id: 1, name: "Trip A", slug: "a", startDate: 1700000000, endDate: 1700500000,
+      summary: "", coverPhotoId: null, chapterCount: 2, photoCount: 0, totalKm: 0,
+      uuid: "a", importedAt: Date.now(),
+    })
+
+    const file = new File(["zip"], "test.zip")
+    const result = await scanTripsFromFile(file)
+
+    expect(result).toHaveLength(2)
+    // Sorted newest first
+    expect(result[0].name).toBe("Trip B")
+    expect(result[0].alreadyImported).toBe(false)
+    expect(result[1].name).toBe("Trip A")
+    expect(result[1].alreadyImported).toBe(true)
+  })
+
+  it("returns empty array when no valid trips found", async () => {
+    const encoder = new TextEncoder()
+    mockExtractZip.mockResolvedValue({
+      "trip/bad_1/trip.json": encoder.encode("not json"),
+    })
+
+    const file = new File(["zip"], "test.zip")
+    const result = await scanTripsFromFile(file)
+    expect(result).toHaveLength(0)
+  })
+
+  it("propagates extraction errors", async () => {
+    const { ImportError } = await import("@/types/import")
+    mockExtractZip.mockRejectedValue(
+      new ImportError("INVALID_ZIP", "Bad zip")
+    )
+
+    const file = new File(["zip"], "test.zip")
+    await expect(scanTripsFromFile(file)).rejects.toThrow("Bad zip")
   })
 })

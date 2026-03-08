@@ -1,10 +1,15 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Cormorant, Outfit } from "next/font/google"
 
 import "./globals.css"
 
-const inter = Inter({
-  variable: "--font-inter",
+const cormorant = Cormorant({
+  variable: "--font-display",
+  subsets: ["latin", "latin-ext"],
+})
+
+const outfit = Outfit({
+  variable: "--font-body",
   subsets: ["latin", "latin-ext"],
 })
 
@@ -20,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${cormorant.variable} ${outfit.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>

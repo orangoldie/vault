@@ -1,11 +1,5 @@
-import { ImportFlow } from "@/features/import/components/import-flow"
+import { LandingPage } from "@/features/landing/components/landing-page"
 
 export default function HomePage() {
-  return (
-    <main className="flex min-h-svh items-center justify-center px-6 py-12">
-      <div className="w-full max-w-[480px]">
-        <ImportFlow />
-      </div>
-    </main>
-  )
+  return <LandingPage />
 }

@@ -13,7 +13,7 @@ export function BackButton({ hasCover }: BackButtonProps) {
   return (
     <nav aria-label="Back navigation" className="fixed left-4 top-4 z-30">
       <Link
-        href="/"
+        href="/import"
         aria-label="Back to trip list"
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",

@@ -12,7 +12,7 @@ export function TripNotFound() {
         This trip doesn&apos;t exist or may have been removed.
       </p>
       <Button asChild variant="outline" className="mt-2 h-11 px-6">
-        <Link href="/">Back to your trips</Link>
+        <Link href="/import">Back to your trips</Link>
       </Button>
     </div>
   )

@@ -4,7 +4,7 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 
 ## Open Questions
 
-- **Photo ordering within a chapter**: Travel exports don't include explicit photo ordering metadata. Filenames are UUID-based, so alphabetical order is effectively random. Need to investigate if there's a timestamp in EXIF data or if the export preserves any implicit ordering (e.g., file position in the ZIP, or a photos array in the JSON).
+- **Photo ordering within a chapter**: Travel exports don't include explicit photo ordering metadata. Filenames are UUID-based, so alphabetical order is effectively random. Need to investigate if there's a timestamp in EXIF data or if the export preserves any implicit ordering (e.g., file position in the ZIP, or a photos array in the JSON). Also investigate whether we can infer which photo should be the "hero" for each chapter (e.g., cover photo metadata, first photo in the export array, EXIF timestamp closest to chapter start time). Currently P1 uses arbitrary IndexedDB return order — revisit once we understand the data better.
 
 ## Future Feature Ideas
 

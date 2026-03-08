@@ -1,0 +1,422 @@
+# 06 — Trip Detail Redesign: Design Plan
+
+## Vision
+
+Transform the trip detail page from a text-only timeline into a cinematic, immersive travel journal. The user should feel like they're re-living the trip — not reading a log. Photos are the heroes, the globe grounds you geographically, and scroll-driven motion creates a sense of progression through time and space.
+
+This is the flagship experience of Journey Vault: the payoff for importing your data.
+
+---
+
+## Phasing
+
+The redesign is too large for a single spec. It splits into three phases, each shippable on its own:
+
+| Phase | Scope | New Dependencies |
+|---|---|---|
+| **P1 — Chapter Showcase** | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
+| **P2 — Globe** | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay | `three`, `@react-three/fiber`, `@react-three/drei` |
+| **P3 — Motion & Atmosphere** | Paper-unfold entrance, parallax depth layers, crossfade transitions, weather-driven ambient color, hand-drawn route line, scroll-to-top button | None |
+
+Each phase has its own section below. A phase builds on the previous one but does not break the page if shipped alone.
+
+---
+
+## P1 — Chapter Showcase
+
+### User Flow
+
+1. User clicks a trip card on the trip list. The page navigates to `/trip/[slug]`.
+2. A skeleton loads briefly while trip + chapter + photo data is fetched from IndexedDB.
+3. The page renders:
+   - **Cover hero** (existing, full-bleed with trip name overlay — no changes needed)
+   - **Trip header** (existing — name, dates, summary, stats)
+   - **Sticky chapter nav** (new — appears after scrolling past the header)
+   - **Chapter sections** (new — replaces the current chapter timeline)
+4. The user scrolls through chapters. Each chapter is a full scene: hero photo, metadata, description, photo spread.
+5. Clicking any photo opens a full-screen lightbox with swipe navigation.
+6. The sticky nav highlights the current chapter and allows jumping to any chapter.
+
+### Sticky Chapter Nav
+
+**Desktop (screen >= 1280px):** a fixed sidebar on the left side of the viewport, vertically centered. It appears once the user scrolls past the trip header.
+
+```
+      ● Tokyo            ┃
+      │                   ┃   [ chapter content area ]
+      ● Kyoto            ┃
+      │                   ┃
+      ◉ Bangkok    ←      ┃
+      │                   ┃
+      ○ Hanoi            ┃
+      │                   ┃
+      ○ Siem Reap        ┃
+```
+
+- Each node shows the **country flag emoji** (derived from `countryCode` via a small util) and the **chapter display name**, truncated with ellipsis if longer than ~20 characters.
+- Filled dot (●) = scrolled past. Active ring (◉) = currently in view (with `vault-gold` color). Hollow dot (○) = not yet reached.
+- The connecting vertical line has a **gold gradient fill** that grows as the user scrolls, representing trip progress.
+- Clicking a node smooth-scrolls to that chapter section.
+- The nav fades in/out with a short opacity transition tied to scroll position (visible once past header, hidden if scrolled back to top).
+
+**Tablet (screen 768px–1279px):** the sidebar is hidden. A compact **floating pill** appears fixed at the bottom-center of the viewport:
+
+```
+  ┌─────────────────────────────────┐
+  │  ◉ Bangkok  ·  3 of 12         │
+  └─────────────────────────────────┘
+```
+
+- Shows current chapter name and position (e.g., "3 of 12").
+- Tapping it opens a scrollable dropdown/popover listing all chapters with flags, allowing quick jump.
+
+**Mobile (screen < 768px):** a sticky horizontal strip at the top, below the back button:
+
+```
+  ● ── ● ── ◉ ── ○ ── ○
+         Bangkok
+```
+
+- Horizontal row of dots with the active chapter name below.
+- Dots are tappable — tapping smooth-scrolls to that chapter.
+- The strip is compact (about 48px tall) to preserve reading space.
+- Horizontally scrollable if there are many chapters, with the active dot always scrolled into view.
+
+**Scroll detection:** use `IntersectionObserver` on each chapter section's sentinel element (a zero-height div at the top of each section). The chapter whose sentinel is closest to the top of the viewport is "active."
+
+### Chapter Sections
+
+Each chapter renders as a distinct full-width section with clear visual separation. The layout within a section, from top to bottom:
+
+1. **Chapter hero photo** — the first photo of the chapter (by storage order), displayed full-bleed (edge-to-edge, no padding). Aspect ratio is preserved; max height is `70vh` with `object-cover`. If the chapter has no photos, this is skipped — no empty gap.
+
+2. **Chapter metadata bar** — sits below the hero (or at the top if no hero). Contains:
+   - Chapter display name (h2, large, serif/display font)
+   - Location detail (smaller, muted)
+   - Date or date range (smaller, muted)
+   - Weather condition + temperature if available (smaller, muted, inline with date)
+   - Country flag emoji before the location name
+   All within the content column (`max-w-[720px]`, centered, with `px-4 md:px-8`).
+
+3. **Chapter description** — the user's text, rendered as a paragraph with `whitespace-pre-line`. Full width within the content column. Bidirectional text support via `dir="auto"` and `<bdi>`.
+
+4. **Photo spread** — all photos for this chapter (excluding the hero, which is photo #1). Layout depends on photo count — see "Scattered Postcard Layout" below.
+
+5. **Chapter divider** — a subtle horizontal rule or generous whitespace (`py-16 md:py-24`) before the next chapter begins. No hard line — just breathing room.
+
+### Scattered Postcard Layout
+
+The signature visual element. Photos are presented as if scattered on a surface — slightly rotated, overlapping edges, with drop shadows. This replaces a conventional grid.
+
+**How it works:**
+
+- Each photo is rendered as a "postcard": the image with a white border (8px on sides, 8px on top, 20px on bottom — like a Polaroid) and a subtle `box-shadow`.
+- Each postcard has a small random rotation applied (`rotate` between -4deg and +4deg), determined by a seeded random value based on the photo ID so it's stable across renders.
+- Postcards overlap slightly — negative margins or absolute positioning within a relative container.
+- The container has a fixed height based on photo count, with postcards arranged in a loose, organic spread.
+
+**Adaptive behavior based on photo count:**
+
+| Count | Layout |
+|---|---|
+| 0 | No photo section rendered |
+| 1 | Single centered postcard, no rotation |
+| 2–4 | "Tossed on table" — postcards fanned out with slight overlap, centered in the content column |
+| 5–12 | Two loose rows, staggered, with varied rotation. Some postcards overlap neighbors |
+| 13+ | Three or more rows in a contained scrollable area (max height `500px`), horizontally scrollable on mobile. This prevents the section from becoming overwhelmingly tall |
+
+**Interaction:**
+
+- **Hover** (desktop): the hovered postcard lifts (slight `translateY(-8px)` + stronger shadow), straightens (rotation goes to 0), and scales up slightly (`scale(1.05)`). Transition: 200ms ease-out. The postcard also gets a higher `z-index` so it appears above neighbors.
+- **Tap** (mobile): tapping a postcard opens the lightbox (no hover state).
+- **Reduced motion:** no rotation, no hover transform. Photos render as a clean grid with the Polaroid-style border.
+
+### Photo Lightbox
+
+A full-screen overlay for viewing photos one at a time.
+
+**Opening:** when a user clicks/taps a photo (either the chapter hero or a postcard), the lightbox opens. The photo animates from its position in the page to the center of the screen using Framer Motion's `layoutId` shared layout animation. The background fades to a near-black overlay (`bg-black/90`).
+
+**Inside the lightbox:**
+
+- The photo is displayed as large as possible while fitting the viewport (contain, not cover), centered.
+- **Navigation:** left/right arrow buttons on desktop (positioned at screen edges, semi-transparent, visible on hover). Swipe left/right on mobile/touch. Keyboard: left/right arrows, Escape to close.
+- **Photo context:** a subtle bar at the bottom shows the chapter name and photo position (e.g., "Bangkok — 3 of 17"). Fades in/out on mouse movement (desktop) or is always visible (mobile).
+- **Close:** click the X button (top-right), press Escape, click outside the photo, or swipe down.
+
+**Closing animation:** the photo animates back to its position in the page (reverse of the opening). If the original position is off-screen, it fades out instead.
+
+**Photo loading:** since photos come from OPFS, they may take a moment. Show a centered spinner on the dark background while loading. Preload the next and previous photos in the background.
+
+**Accessibility:**
+- Focus is trapped inside the lightbox while open.
+- The lightbox has `role="dialog"` and `aria-label="Photo viewer"`.
+- Arrow buttons have `aria-label="Previous photo"` / `"Next photo"`.
+- Escape closes the lightbox. Focus returns to the photo that was clicked.
+
+### Photo Loading Strategy
+
+Photos are stored in OPFS and must be read as blobs, then converted to object URLs.
+
+- **Lazy loading:** only load photos for chapters that are near the viewport. Use `IntersectionObserver` with a `rootMargin` of `"200% 0px"` (two viewports ahead) to start loading chapter photos before the user scrolls to them.
+- **Per-chapter batching:** when a chapter enters the load zone, fetch all its photo metadata from IndexedDB (`getPhotosByChapter`), then load blobs from OPFS in parallel (with a concurrency limit of 4 to avoid overwhelming OPFS).
+- **Placeholders:** before a photo loads, render a placeholder div with `bg-muted` at the postcard's dimensions. The placeholder has the same rotation/position as the final postcard to avoid layout shift.
+- **Object URL cleanup:** revoke object URLs when a chapter scrolls far out of view (more than 3 viewports away). Re-create them if the user scrolls back. Track active URLs in a `Map<string, string>` in a context or hook.
+- **Memory budget:** if total active object URLs exceed ~100, evict the oldest (furthest from viewport) ones first. **Exception:** never evict URLs for the chapter currently displayed in the lightbox — pin all URLs for that chapter until the lightbox closes, then resume normal eviction.
+
+### States
+
+| State | What the user sees |
+|---|---|
+| **Loading** | Existing skeleton (trip header shimmer + placeholder chapter blocks) |
+| **Success** | Full chapter showcase with sticky nav, photos, etc. |
+| **Error** | Existing error state with retry button |
+| **Not found** | Existing 404 state |
+| **Chapter with no photos** | Chapter renders with metadata + description only, no photo section, no hero. Looks clean — like a text journal entry |
+| **Chapter with no description** | Hero photo + metadata + photo spread. No empty paragraph |
+| **Chapter with nothing** | Metadata bar only (name, location, date). Still a valid entry in the timeline |
+
+### Components
+
+| Component | Status | Notes |
+|---|---|---|
+| `HeroCover` | Exists | No changes — the trip-level cover remains as-is |
+| `TripHeader` | Exists | No changes |
+| `TripStats` | Exists | No changes |
+| `BackButton` | Exists | No changes |
+| `TripDetailPage` | Exists | **Modify** — replace `ChapterTimeline` with new `ChapterShowcase`, add `ChapterNav` |
+| `ChapterShowcase` | **New** | Renders all chapter sections with scroll observation |
+| `ChapterSection` | **New** | Single chapter: hero + metadata + description + photos |
+| `ChapterNav` | **New** | Sticky sidebar (desktop) / pill (tablet) / top strip (mobile) |
+| `ChapterNavSidebar` | **New** | Desktop sidebar variant |
+| `ChapterNavPill` | **New** | Tablet floating pill variant |
+| `ChapterNavStrip` | **New** | Mobile horizontal strip variant |
+| `PostcardGrid` | **New** | Scattered postcard photo layout |
+| `PostcardPhoto` | **New** | Single photo with polaroid border, rotation, hover lift |
+| `PhotoLightbox` | **New** | Full-screen photo viewer with navigation |
+| `ChapterCard` | Exists | **Remove** — replaced by `ChapterSection` |
+| `ChapterTimeline` | Exists | **Remove** — replaced by `ChapterShowcase` |
+
+### New Data Requirements
+
+The `useTripDetail` hook currently loads the trip and chapters but no photos. For P1:
+
+- Add a `getPhotosByChapter(chapterId: number): Promise<Photo[]>` function to `db.ts` (the index already exists).
+- Add a new hook `useChapterPhotos(chapterId: number)` that lazily loads photos for a chapter when triggered. Returns `{ photos: Photo[], photoUrls: Map<string, string>, status }`.
+- The `ChapterShowcase` component manages which chapters should load photos based on viewport proximity.
+
+---
+
+## P2 — Globe
+
+### 3D Globe with Compass Rose
+
+A small interactive 3D earth rendered with `react-three-fiber`, positioned in the bottom-right corner of the viewport on desktop, or hidden behind a floating button on mobile.
+
+**Visual design:**
+
+- Earth sphere with a natural-color texture (land in warm beige/brown tones to match the vault palette, oceans in muted slate — not the typical bright blue/green). A custom-tinted earth texture.
+- Subtle atmosphere glow: a soft golden rim light around the sphere edge (using `drei`'s `Atmosphere` or a custom shader), matching `vault-gold`.
+- Slow idle rotation (0.1rpm) when not tracking a chapter.
+- The globe sits inside a **compass rose frame**: a decorative SVG border with cardinal direction markers (N, S, E, W) rendered in `vault-gold-dim`. The compass rose is 2D, layered behind/around the 3D canvas. It gives the globe a "navigator's instrument" feel rather than a floating sphere.
+
+**Size and position:**
+
+- Desktop: 180px diameter, fixed to bottom-right with 24px margin. The compass rose extends ~20px beyond the sphere on each side, so the total footprint is about 220px.
+- Mobile: hidden by default. A small circular button (40px, globe icon) in the bottom-right corner. Tapping it reveals the globe in an expanding circle animation.
+
+**Scroll-synced rotation:**
+
+- As the user scrolls through chapters, the globe smoothly rotates to center on the active chapter's `lat`/`lon`.
+- A glowing dot (small sphere with emissive material in `vault-gold`) pulses at the chapter's coordinates on the globe surface.
+- The rotation uses spherical interpolation (slerp) for smooth movement between chapter positions.
+- Rotation is driven by the same `IntersectionObserver` that powers the sticky nav — when the active chapter changes, the globe animates to the new position over ~800ms.
+
+**Interaction:**
+
+- The user can **drag to rotate** the globe manually (orbit controls from `drei`, constrained to rotation only — no zoom, no pan).
+- While the user is dragging, scroll-synced rotation pauses. It resumes 2 seconds after the user releases.
+- **Clicking the globe** (or a small "expand" button on the compass rose frame) triggers the expanded map overlay.
+
+### Expanded Map Overlay
+
+Clicking the globe opens a full-viewport overlay showing the globe at large scale with all chapter locations visible.
+
+**Layout:**
+
+- The globe scales from its corner position to fill ~70% of the viewport width (centered), with a dark semi-transparent backdrop (`bg-black/80`).
+- All chapter locations are rendered as dots on the globe surface, connected by curved arc lines (great circle arcs rendered as `drei` `Line` geometry or `THREE.CurvePath`).
+- Each dot is labeled with the chapter name (using `drei`'s `Html` component for DOM labels positioned in 3D space).
+- The route arcs animate in sequentially — the first arc draws itself from chapter 1 to chapter 2, then 2 to 3, etc. Total animation duration ~2 seconds.
+- The active chapter's dot is highlighted (larger, brighter glow).
+
+**Interaction in expanded mode:**
+
+- Click a chapter dot or label to close the overlay and smooth-scroll to that chapter on the page.
+- Drag to rotate and explore.
+- Close button (top-right) or Escape to close. The globe animates back to its corner position.
+
+**Mobile:** the expanded globe fills the full screen.
+
+### Performance Considerations
+
+- The globe canvas renders at device pixel ratio capped at 2 to save GPU.
+- When the globe is not visible (scrolled off screen or on a page without a trip), the render loop pauses (`frameloop="demand"` in R3F).
+- Earth texture is a single compressed image (~200KB), loaded lazily after the page content renders.
+- The globe is loaded via `React.lazy` + `Suspense` so it doesn't block initial page render. The compass rose frame renders immediately as an SVG placeholder.
+
+---
+
+## P3 — Motion & Atmosphere
+
+### Paper-Unfold Entrance
+
+When the trip detail page first loads (after data is ready), instead of a simple fade-in, the content "unfolds" like a paper map being opened.
+
+**The animation:**
+
+1. The entire content area starts as a narrow vertical strip (scaleX: 0.05, full height) centered on screen, with a parchment-like background color.
+2. It unfolds horizontally (scaleX animates to 1) over 600ms with an ease-out curve.
+3. As it unfolds, the content fades in from 0 to 1 opacity (starting at 300ms, so the unfold is half-done before content appears).
+4. A subtle paper-crease shadow runs down the center during the fold, fading as it opens.
+
+**Constraints:**
+- Only plays on initial page load, not on back-navigation or re-renders.
+- Skipped entirely if `prefers-reduced-motion` is set (content just fades in normally).
+- Uses Framer Motion's `animate` with `useReducedMotion`.
+
+### Depth Layers & Crossfade
+
+Each chapter section uses layered scroll effects to create a cinematic, immersive feel.
+
+**Hero layer — sticky crossfade with Ken Burns zoom:**
+
+- Each chapter's hero photo is `position: sticky` at the top of the viewport during that chapter's scroll range.
+- As the user scrolls from one chapter to the next, the outgoing hero fades out (opacity 1 → 0) while the incoming hero fades in (0 → 1), creating a dissolve transition rather than a hard cut. The transition zone is ~100px of overlap between chapters.
+- While stuck, the hero slowly zooms in via `scale(1.0)` → `scale(1.08)` over the chapter's scroll range (a Ken Burns effect), giving the photo a sense of life without conflicting with sticky positioning.
+- Opacity and scale are both driven by `useScroll` + `useTransform`, scoped to each chapter section's scroll progress.
+
+**Content layer** (metadata, description): moves at normal 1x scroll speed, scrolling over the sticky hero.
+
+**Foreground details** (postcard photos): moves at 1x scroll speed but has a slight vertical offset (`translateY`) that creates visual separation from the content layer above.
+
+Implementation: Framer Motion `useScroll` + `useTransform` for both the crossfade opacity and the Ken Burns scale. Each chapter section is its own scroll-tracking container.
+
+Reduced motion: no crossfade, no zoom. Chapters are separated by whitespace, heroes scroll normally as static images.
+
+### Weather-Driven Ambient Color
+
+A subtle background color shift per chapter, derived from the chapter's weather and time of day.
+
+**Color mapping:**
+
+| Condition | Ambient tint |
+|---|---|
+| Clear / sunny (daytime) | Warm golden — `hsl(38 40% 94%)` |
+| Cloudy / overcast | Cool grey — `hsl(220 10% 92%)` |
+| Rainy / stormy | Slate blue — `hsl(210 15% 88%)` |
+| Snow | Cool white — `hsl(200 20% 95%)` |
+| No weather data | Default vault background — no tint |
+
+The tint is applied as a full-width background gradient behind the chapter section, transitioning smoothly from one chapter's tint to the next over the divider space. The effect is subtle — a barely perceptible warmth or coolness that makes each chapter *feel* different without being distracting.
+
+### Hand-Drawn Route Line
+
+Between chapter sections (in the divider space), a decorative dotted line meanders down the page, connecting one chapter to the next — like a route drawn on a paper map.
+
+**Visual:**
+
+- The line is an SVG path with a hand-drawn aesthetic: slightly wobbly, not perfectly straight. Generated procedurally with small random offsets on control points.
+- Stroke: `vault-gold-dim`, 1.5px, dashed (`stroke-dasharray: 6 4`).
+- The line starts at the bottom-center of one chapter section and ends at the top-center of the next.
+- It curves gently left or right (alternating per chapter pair) to avoid monotony.
+
+**Scroll animation:** the line draws itself as the user scrolls into view, using `stroke-dashoffset` animated by scroll position. By the time the next chapter's hero is visible, the line is fully drawn.
+
+Reduced motion: the line is fully drawn (no animation), rendered as a static decorative element.
+
+### Scroll-to-Top Button
+
+A floating button that appears once the user has scrolled past the first chapter section (~2 viewports down).
+
+**Visual:** a small circular button (40px) in the bottom-right corner (above the globe on desktop, or in its place on mobile when the globe is hidden). Icon: upward chevron or arrow. Styled with `bg-vault-surface` and `vault-gold` icon, with a subtle shadow. Fades in/out based on scroll position.
+
+**Behavior:** smooth-scrolls to the top of the page (trip header). The button disappears once the user is back at the top.
+
+**Position:** on desktop, sits above the globe (if P2 is shipped) with 12px gap. On mobile, bottom-right corner with 16px margin.
+
+Reduced motion: instant scroll (`behavior: "auto"` instead of `"smooth"`).
+
+---
+
+## Visual Direction
+
+### Typography
+
+- Chapter display names: use the display/serif font (`font-serif` / `--font-display`) at `text-2xl` / `text-3xl`. This is the "journal entry title" moment — it should feel handwritten or editorial, distinct from body text.
+- All other text (dates, locations, descriptions, stats): body font (`font-sans` / `--font-body`).
+- Chapter descriptions: `text-base`, `leading-relaxed`, generous max-width for comfortable reading line length.
+
+### Color
+
+- Use the existing vault palette. No new color tokens except the weather ambient tints (P3), which are subtle background shifts and don't need tokens.
+- The postcard border: light mode `hsl(0 0% 98%)` (slightly off-white, warmer than pure white, parchment feel); dark mode `hsl(30 6% 20%)` (matching `--surface-hover` tone so the Polaroid frame blends with the dark surface without jarring contrast).
+- Accent dot on the timeline nav: `vault-gold`.
+- Lightbox backdrop: `bg-black/90`.
+
+### Spacing
+
+- Between chapter sections: `py-16 md:py-24` — generous breathing room.
+- Content column remains `max-w-[720px]` with `px-4 md:px-8`.
+- Chapter hero photos break out of the content column to full viewport width.
+- Postcard grid sits within the content column.
+
+### Motion Principles
+
+- All animations respect `prefers-reduced-motion`. Every animated component checks this and falls back to instant/static rendering.
+- Scroll-driven animations use `will-change: transform` and `transform` only (no layout-triggering properties) to stay on the compositor thread.
+- The globe render loop pauses when not visible.
+- Framer Motion is the animation library for DOM elements. Three.js handles 3D.
+
+---
+
+## Accessibility
+
+### Keyboard Navigation
+
+- **Chapter nav:** all chapter nodes/dots are focusable buttons. Enter/Space triggers smooth-scroll to that chapter.
+- **Postcard photos:** each photo is a focusable button. Enter/Space opens the lightbox.
+- **Lightbox:** focus trapped. Arrow keys navigate photos. Escape closes. Focus returns to the trigger photo on close.
+- **Globe:** the expand button is focusable. The 3D canvas itself is not keyboard-navigable (3D drag is mouse/touch only), but the expanded overlay's chapter labels are focusable buttons.
+
+### Screen Readers
+
+- Chapter sections use `<section aria-label="Chapter: {displayName}">`.
+- Photo images use `alt="Photo {n} from {chapterName}"`.
+- The chapter nav has `aria-label="Chapter navigation"` and each node has `aria-current="true"` when active.
+- The globe expand button: `aria-label="View trip on globe"`.
+- Lightbox: `role="dialog"`, `aria-label="Photo viewer"`, `aria-roledescription="carousel"`.
+
+### Reduced Motion
+
+Every section above specifies its reduced-motion fallback. The general rule: remove transforms, parallax, and drawing animations. Keep opacity fades (but make them instant, `duration: 0`). Render all content statically.
+
+---
+
+## Mobile Behavior
+
+- **Chapter heroes:** full-width, max-height `50vh` (instead of `70vh` on desktop) to leave room for content.
+- **Postcard layout:** reduces to 2 columns max. Less rotation (max +-2deg) to avoid awkward clipping. For 13+ photos, horizontal scroll strip instead of vertical scroll area.
+- **Chapter nav:** horizontal dot strip (48px tall) sticky at top. Scrollable.
+- **Globe:** hidden behind a floating action button. Tapping opens it.
+- **Lightbox:** swipe-to-navigate, swipe-down-to-close. Full-screen.
+- **Crossfade & Ken Burns (P3):** disabled on mobile (performance). Heroes scroll normally, no sticky crossfade or zoom.
+- **Paper-unfold (P3):** simplified to a quick fade-in (200ms) on mobile.
+
+---
+
+## Decisions
+
+- **Scroll to top:** Yes — floating button appears after scrolling past the first chapter. Included in P3.
+- **Postcard layout toggle:** No — the postcard layout is the layout. No grid toggle.
+- **Globe earth texture:** Bundled as a static image in `public/textures/` (~200KB, compressed). Works offline, no CDN dependency. The texture will be color-treated to match the vault palette (warm beige landmasses, muted slate oceans).

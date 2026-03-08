@@ -29,7 +29,7 @@ export function ChapterCard({ chapter }: ChapterCardProps) {
   return (
     <div className="relative pl-8">
       {/* Timeline dot */}
-      <div className="absolute left-0 top-1.5 size-2.5 rounded-full bg-accent" />
+      <div className="absolute -left-[5px] top-1.5 size-2.5 rounded-full bg-accent" />
 
       <div className="flex flex-col gap-1">
         <h2

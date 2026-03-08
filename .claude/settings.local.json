@@ -8,7 +8,8 @@
       "Bash(npx vitest:*)",
       "Bash(mkdir:*)",
       "Bash(unzip -p user_data.zip \"trip/a-new-adventure_23101407/trip.json\")",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(grep:*)"
     ]
   }
 }

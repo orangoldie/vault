@@ -56,32 +56,32 @@
 
 :root {
   --radius: 0.625rem;
-  /* Warm off-white palette from design system */
-  --background: hsl(40 20% 98%);
-  --foreground: hsl(30 10% 15%);
-  --surface: hsl(40 15% 95%);
-  --surface-hover: hsl(40 12% 91%);
-  --border: hsl(40 10% 87%);
-  --input: hsl(40 10% 87%);
-  --ring: hsl(220 55% 50%);
+  /* Vault palette — aligned with vault-* tokens */
+  --background: hsl(38 30% 95%);
+  --foreground: hsl(25 22% 16%);
+  --surface: hsl(36 22% 90%);
+  --surface-hover: hsl(36 18% 86%);
+  --border: hsl(32 15% 82%);
+  --input: hsl(32 15% 82%);
+  --ring: hsl(32 55% 38%);
 
   /* Text */
-  --primary: hsl(30 10% 15%);
+  --primary: hsl(25 22% 16%);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(40 15% 95%);
-  --secondary-foreground: hsl(30 10% 15%);
-  --muted: hsl(40 15% 95%);
-  --muted-foreground: hsl(30 4% 62%);
+  --secondary: hsl(36 22% 90%);
+  --secondary-foreground: hsl(25 22% 16%);
+  --muted: hsl(36 22% 90%);
+  --muted-foreground: hsl(25 12% 46%);
 
-  /* Accent (blue) */
-  --accent: hsl(220 55% 50%);
+  /* Accent (vault gold) */
+  --accent: hsl(32 55% 38%);
   --accent-foreground: hsl(0 0% 100%);
 
   /* Cards */
-  --card: hsl(40 15% 95%);
-  --card-foreground: hsl(30 10% 15%);
-  --popover: hsl(40 20% 98%);
-  --popover-foreground: hsl(30 10% 15%);
+  --card: hsl(36 22% 90%);
+  --card-foreground: hsl(25 22% 16%);
+  --popover: hsl(38 30% 95%);
+  --popover-foreground: hsl(25 22% 16%);
 
   /* Status */
   --success: hsl(152 45% 42%);
@@ -91,14 +91,14 @@
   --destructive: hsl(0 72% 51%);
 
   /* Sidebar (unused but required by shadcn) */
-  --sidebar: hsl(40 20% 98%);
-  --sidebar-foreground: hsl(30 10% 15%);
-  --sidebar-primary: hsl(220 55% 50%);
+  --sidebar: hsl(38 30% 95%);
+  --sidebar-foreground: hsl(25 22% 16%);
+  --sidebar-primary: hsl(32 55% 38%);
   --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(40 15% 95%);
-  --sidebar-accent-foreground: hsl(30 10% 15%);
-  --sidebar-border: hsl(40 10% 87%);
-  --sidebar-ring: hsl(220 55% 50%);
+  --sidebar-accent: hsl(36 22% 90%);
+  --sidebar-accent-foreground: hsl(25 22% 16%);
+  --sidebar-border: hsl(32 15% 82%);
+  --sidebar-ring: hsl(32 55% 38%);
 }
 
 .dark {

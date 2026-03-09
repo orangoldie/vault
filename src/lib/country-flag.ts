@@ -1,10 +1,9 @@
 /**
- * Convert an ISO 3166-1 alpha-2 country code to its flag emoji.
- * Each letter is offset into the Regional Indicator Symbol range (U+1F1E6–U+1F1FF).
+ * Convert an ISO 3166-1 alpha-2 country code to its flag-icons CSS class.
+ * Returns empty string for invalid codes.
  */
-export function countryCodeToFlag(countryCode: string): string {
-  const code = countryCode.toUpperCase()
+export function countryFlagClass(countryCode: string): string {
+  const code = countryCode.toLowerCase()
   if (code.length !== 2) return ""
-  const offset = 0x1f1e6 - 65 // 'A' = 65
-  return String.fromCodePoint(code.charCodeAt(0) + offset, code.charCodeAt(1) + offset)
+  return `fi fi-${code} fis`
 }

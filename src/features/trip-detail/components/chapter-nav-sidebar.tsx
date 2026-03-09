@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 
 import { cn } from "@/lib/utils"
-import { countryCodeToFlag } from "@/lib/country-flag"
+import { countryFlagClass } from "@/lib/country-flag"
 import type { Chapter } from "@/types/trip"
 
 interface ChapterNavSidebarProps {
@@ -65,29 +65,30 @@ export function ChapterNavSidebar({
     >
       <div
         ref={scrollRef}
-        className="relative flex max-h-[80vh] flex-col gap-0 overflow-y-auto scrollbar-none"
+        className="max-h-[80vh] overflow-y-auto scrollbar-hidden"
       >
-        {/* Gold gradient progress line behind all nodes */}
-        {chapters.length > 1 && (
-          <div
-            className="absolute left-[5px] top-[6px] w-px"
-            style={{ height: `calc(100% - 12px)` }}
-            aria-hidden="true"
-          >
-            {/* Track background */}
-            <div className="absolute inset-0 bg-vault-gold-dim/30" />
-            {/* Active fill — pixel-positioned to the active dot */}
+        <div className="relative flex flex-col gap-0">
+          {/* Gold gradient progress line behind all nodes */}
+          {chapters.length > 1 && (
             <div
-              className="absolute inset-x-0 top-0 bg-gradient-to-b from-vault-gold to-vault-gold transition-all duration-300 ease-out"
-              style={{ height: `${progressHeight}px` }}
-            />
-          </div>
-        )}
+              className="absolute left-[5px] top-[6px] w-px"
+              style={{ height: `calc(100% - 12px)` }}
+              aria-hidden="true"
+            >
+              {/* Track background */}
+              <div className="absolute inset-0 bg-vault-gold-dim/30" />
+              {/* Active fill — pixel-positioned to the active dot */}
+              <div
+                className="absolute inset-x-0 top-0 bg-gradient-to-b from-vault-gold to-vault-gold transition-all duration-300 ease-out"
+                style={{ height: `${progressHeight}px` }}
+              />
+            </div>
+          )}
 
-        {chapters.map((chapter, i) => {
+          {chapters.map((chapter, i) => {
           const isPast = i < activeIndex
           const isActive = i === activeIndex
-          const flag = countryCodeToFlag(chapter.location.countryCode)
+          const flagClass = countryFlagClass(chapter.location.countryCode)
 
           // Truncate long names
           const name =
@@ -138,12 +139,13 @@ export function ChapterNavSidebar({
                       : "text-vault-text-dim"
                 )}
               >
-                {flag && <span className="mr-1">{flag}</span>}
+                {flagClass && <span className={`${flagClass} mr-1 inline-block size-3`} />}
                 {name}
               </button>
             </div>
           )
         })}
+        </div>
       </div>
     </nav>
   )

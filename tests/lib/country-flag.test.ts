@@ -1,23 +1,23 @@
 import { describe, it, expect } from "vitest"
 
-import { countryCodeToFlag } from "@/lib/country-flag"
+import { countryFlagClass } from "@/lib/country-flag"
 
-describe("countryCodeToFlag", () => {
-  it("converts US to the US flag emoji", () => {
-    expect(countryCodeToFlag("US")).toBe("🇺🇸")
+describe("countryFlagClass", () => {
+  it("converts US to flag-icons CSS classes", () => {
+    expect(countryFlagClass("US")).toBe("fi fi-us fis")
   })
 
-  it("converts TH to the Thailand flag emoji", () => {
-    expect(countryCodeToFlag("TH")).toBe("🇹🇭")
+  it("converts TH to flag-icons CSS classes", () => {
+    expect(countryFlagClass("TH")).toBe("fi fi-th fis")
   })
 
   it("handles lowercase input", () => {
-    expect(countryCodeToFlag("jp")).toBe("🇯🇵")
+    expect(countryFlagClass("jp")).toBe("fi fi-jp fis")
   })
 
   it("returns empty string for invalid length", () => {
-    expect(countryCodeToFlag("")).toBe("")
-    expect(countryCodeToFlag("A")).toBe("")
-    expect(countryCodeToFlag("USA")).toBe("")
+    expect(countryFlagClass("")).toBe("")
+    expect(countryFlagClass("A")).toBe("")
+    expect(countryFlagClass("USA")).toBe("")
   })
 })

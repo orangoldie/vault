@@ -202,7 +202,7 @@ A small interactive 3D earth rendered with `react-three-fiber`, positioned in th
 
 **Visual design:**
 
-- Earth sphere with a natural-color texture (land in warm beige/brown tones to match the vault palette, oceans in muted slate — not the typical bright blue/green). A custom-tinted earth texture.
+- Earth sphere with a natural-color texture (an off-the-shelf earth texture that fits the overall aesthetic).
 - Subtle atmosphere glow: a soft golden rim light around the sphere edge (using `drei`'s `Atmosphere` or a custom shader), matching `vault-gold`.
 - Slow idle rotation (0.1rpm) when not tracking a chapter.
 - The globe sits inside a **compass rose frame**: a decorative SVG border with cardinal direction markers (N, S, E, W) rendered in `vault-gold-dim`. The compass rose is 2D, layered behind/around the 3D canvas. It gives the globe a "navigator's instrument" feel rather than a floating sphere.
@@ -221,8 +221,6 @@ A small interactive 3D earth rendered with `react-three-fiber`, positioned in th
 
 **Interaction:**
 
-- The user can **drag to rotate** the globe manually (orbit controls from `drei`, constrained to rotation only — no zoom, no pan).
-- While the user is dragging, scroll-synced rotation pauses. It resumes 2 seconds after the user releases.
 - **Clicking the globe** (or a small "expand" button on the compass rose frame) triggers the expanded map overlay.
 
 ### Expanded Map Overlay
@@ -239,8 +237,8 @@ Clicking the globe opens a full-viewport overlay showing the globe at large scal
 
 **Interaction in expanded mode:**
 
+- Drag to rotate the globe and explore all chapter locations.
 - Click a chapter dot or label to close the overlay and smooth-scroll to that chapter on the page.
-- Drag to rotate and explore.
 - Close button (top-right) or Escape to close. The globe animates back to its corner position.
 
 **Mobile:** the expanded globe fills the full screen.

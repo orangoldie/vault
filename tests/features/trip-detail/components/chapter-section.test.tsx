@@ -70,7 +70,7 @@ describe("ChapterSection", () => {
     expect(section).toBeInTheDocument()
   })
 
-  it("renders country flag emoji before location detail", () => {
+  it("renders country flag before location detail", () => {
     render(
       <ChapterSection
         chapter={makeChapter()}
@@ -79,7 +79,8 @@ describe("ChapterSection", () => {
       />
     )
 
-    expect(screen.getByText(/🇹🇭/)).toBeInTheDocument()
+    const flag = document.querySelector(".fi.fi-th")
+    expect(flag).toBeInTheDocument()
   })
 
   it("renders description when present", () => {

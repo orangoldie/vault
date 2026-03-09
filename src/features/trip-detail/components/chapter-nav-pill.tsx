@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
-import { countryCodeToFlag } from "@/lib/country-flag"
+import { countryFlagClass } from "@/lib/country-flag"
 import type { Chapter } from "@/types/trip"
 
 interface ChapterNavPillProps {
@@ -91,7 +91,7 @@ export function ChapterNavPill({
             )}
           >
             {chapters.map((chapter, i) => {
-              const flag = countryCodeToFlag(chapter.location.countryCode)
+              const flagClass = countryFlagClass(chapter.location.countryCode)
               const isActive = i === activeIndex
               return (
                 <button
@@ -110,7 +110,7 @@ export function ChapterNavPill({
                       : "text-vault-text"
                   )}
                 >
-                  {flag && <span>{flag}</span>}
+                  {flagClass && <span className={`${flagClass} inline-block size-4`} />}
                   <span className="truncate">{chapter.displayName}</span>
                 </button>
               )

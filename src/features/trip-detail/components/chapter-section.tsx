@@ -4,7 +4,7 @@ import { useCallback, useState } from "react"
 import { AnimatePresence } from "framer-motion"
 
 import { cn } from "@/lib/utils"
-import { countryCodeToFlag } from "@/lib/country-flag"
+import { countryFlagClass } from "@/lib/country-flag"
 import { formatDate, formatDateRange } from "@/lib/format-date"
 import type { Chapter, Photo } from "@/types/trip"
 
@@ -46,7 +46,7 @@ export function ChapterSection({
 }: ChapterSectionProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
-  const flag = countryCodeToFlag(chapter.location.countryCode)
+  const flagClass = countryFlagClass(chapter.location.countryCode)
   const weather = formatWeather(chapter)
 
   const openLightbox = useCallback((index: number) => {
@@ -77,7 +77,7 @@ export function ChapterSection({
 
           {chapter.location.detail && (
             <p className="text-sm text-muted-foreground">
-              {flag && <span className="mr-1.5">{flag}</span>}
+              {flagClass && <span className={`${flagClass} mr-1.5 inline-block size-4`} />}
               {chapter.location.detail}
             </p>
           )}

@@ -8,6 +8,20 @@ afterEach(() => {
   cleanup()
 })
 
+// Mock IntersectionObserver for jsdom
+class MockIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(window, "IntersectionObserver", {
+  writable: true,
+  value: MockIntersectionObserver,
+})
+
+// Mock Element.scrollIntoView for jsdom
+Element.prototype.scrollIntoView = () => {}
+
 // Mock window.matchMedia for jsdom (not implemented natively)
 Object.defineProperty(window, "matchMedia", {
   writable: true,

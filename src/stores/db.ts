@@ -103,6 +103,23 @@ export async function getPhotosByTrip(tripId: number): Promise<string[]> {
   return db.getAllKeysFromIndex("photos", "tripId", tripId) as Promise<string[]>
 }
 
+export async function getPhotosByChapter(chapterId: number): Promise<Photo[]> {
+  const db = await getDb()
+  return db.getAllFromIndex("photos", "chapterId", chapterId)
+}
+
+export async function getPhotoCountsByTrip(
+  tripId: number
+): Promise<Map<number, number>> {
+  const db = await getDb()
+  const photos = await db.getAllFromIndex("photos", "tripId", tripId)
+  const counts = new Map<number, number>()
+  for (const photo of photos) {
+    counts.set(photo.chapterId, (counts.get(photo.chapterId) ?? 0) + 1)
+  }
+  return counts
+}
+
 export async function getPhotosByIds(ids: string[]): Promise<Photo[]> {
   if (ids.length === 0) return []
   const db = await getDb()

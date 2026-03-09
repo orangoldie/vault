@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 
-import { getTripBySlug, getChaptersByTrip } from "@/stores/db"
+import { getTripBySlug, getChaptersByTrip, getPhotoCountsByTrip } from "@/stores/db"
 import { readPhoto } from "@/stores/photo-storage"
 import type { Trip, Chapter } from "@/types/trip"
 
@@ -15,6 +15,7 @@ interface TripDetailState {
   trip?: Trip
   chapters?: Chapter[]
   coverPhotoUrl?: string | null
+  photoCountsByChapter?: Map<number, number>
 }
 
 export function useTripDetail(slug: string) {
@@ -32,7 +33,10 @@ export function useTripDetail(slug: string) {
         return
       }
 
-      const chapters = await getChaptersByTrip(trip.id)
+      const [chapters, photoCountsByChapter] = await Promise.all([
+        getChaptersByTrip(trip.id),
+        getPhotoCountsByTrip(trip.id),
+      ])
       const sortedChapters = [...chapters].sort(
         (a, b) => a.startTime - b.startTime
       )
@@ -65,6 +69,7 @@ export function useTripDetail(slug: string) {
         trip,
         chapters: sortedChapters,
         coverPhotoUrl,
+        photoCountsByChapter,
       })
     } catch {
       setState({ status: "error" })

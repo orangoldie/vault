@@ -14,7 +14,7 @@ The redesign is too large for a single spec. It splits into three phases, each s
 
 | Phase | Scope | New Dependencies |
 |---|---|---|
-| **P1 — Chapter Showcase** | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
+| **P1 — Chapter Showcase** ✅ | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
 | **P2 — Globe** | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay | `three`, `@react-three/fiber`, `@react-three/drei` |
 | **P3 — Motion & Atmosphere** | Paper-unfold entrance, parallax depth layers, crossfade transitions, weather-driven ambient color, hand-drawn route line, scroll-to-top button | None |
 
@@ -58,6 +58,7 @@ Each phase has its own section below. A phase builds on the previous one but doe
 - The connecting vertical line has a **gold gradient fill** that grows as the user scrolls, representing trip progress.
 - Clicking a node smooth-scrolls to that chapter section.
 - The nav fades in/out with a short opacity transition tied to scroll position (visible once past header, hidden if scrolled back to top).
+- **Overflow handling:** the sidebar content is scrollable (`max-h-[80vh] overflow-y-auto`, hidden scrollbar) with the active dot always scrolled into view. This handles trips with 20+ chapters gracefully.
 
 **Tablet (screen 768px–1279px):** the sidebar is hidden. A compact **floating pill** appears fixed at the bottom-center of the viewport:
 
@@ -70,17 +71,7 @@ Each phase has its own section below. A phase builds on the previous one but doe
 - Shows current chapter name and position (e.g., "3 of 12").
 - Tapping it opens a scrollable dropdown/popover listing all chapters with flags, allowing quick jump.
 
-**Mobile (screen < 768px):** a sticky horizontal strip at the top, below the back button:
-
-```
-  ● ── ● ── ◉ ── ○ ── ○
-         Bangkok
-```
-
-- Horizontal row of dots with the active chapter name below.
-- Dots are tappable — tapping smooth-scrolls to that chapter.
-- The strip is compact (about 48px tall) to preserve reading space.
-- Horizontally scrollable if there are many chapters, with the active dot always scrolled into view.
+**Mobile (screen < 768px):** same floating pill as tablet, positioned at the bottom-center. Tapping opens a scrollable chapter list popover. This avoids a noisy fixed strip at the top that competes with the back button and content.
 
 **Scroll detection:** use `IntersectionObserver` on each chapter section's sentinel element (a zero-height div at the top of each section). The chapter whose sentinel is closest to the top of the viewport is "active."
 
@@ -88,9 +79,7 @@ Each phase has its own section below. A phase builds on the previous one but doe
 
 Each chapter renders as a distinct full-width section with clear visual separation. The layout within a section, from top to bottom:
 
-1. **Chapter hero photo** — the first photo of the chapter (by storage order), displayed full-bleed (edge-to-edge, no padding). Aspect ratio is preserved; max height is `70vh` with `object-cover`. If the chapter has no photos, this is skipped — no empty gap.
-
-2. **Chapter metadata bar** — sits below the hero (or at the top if no hero). Contains:
+1. **Chapter metadata bar** — always the first element in a chapter section. Contains:
    - Chapter display name (h2, large, serif/display font)
    - Location detail (smaller, muted)
    - Date or date range (smaller, muted)
@@ -98,11 +87,11 @@ Each chapter renders as a distinct full-width section with clear visual separati
    - Country flag emoji before the location name
    All within the content column (`max-w-[720px]`, centered, with `px-4 md:px-8`).
 
-3. **Chapter description** — the user's text, rendered as a paragraph with `whitespace-pre-line`. Full width within the content column. Bidirectional text support via `dir="auto"` and `<bdi>`.
+2. **Chapter description** — the user's text, rendered as a paragraph with `whitespace-pre-line`. Full width within the content column. Bidirectional text support via `dir="auto"` and `<bdi>`.
 
-4. **Photo spread** — all photos for this chapter (excluding the hero, which is photo #1). Layout depends on photo count — see "Scattered Postcard Layout" below.
+3. **Photo spread** — all photos for this chapter. Layout depends on photo count — see "Scattered Postcard Layout" below. There is no separate "hero" photo — since photo ordering is not deterministic (no timestamps or meaningful filenames), all photos are treated equally in the postcard spread.
 
-5. **Chapter divider** — a subtle horizontal rule or generous whitespace (`py-16 md:py-24`) before the next chapter begins. No hard line — just breathing room.
+4. **Chapter divider** — moderate whitespace (`py-8 md:py-14`) between chapters. No hard line — just breathing room. Not too much — chapters should feel connected as parts of one journey.
 
 ### Scattered Postcard Layout
 
@@ -112,8 +101,8 @@ The signature visual element. Photos are presented as if scattered on a surface 
 
 - Each photo is rendered as a "postcard": the image with a white border (8px on sides, 8px on top, 20px on bottom — like a Polaroid) and a subtle `box-shadow`.
 - Each postcard has a small random rotation applied (`rotate` between -4deg and +4deg), determined by a seeded random value based on the photo ID so it's stable across renders.
-- Postcards overlap slightly — negative margins or absolute positioning within a relative container.
-- The container has a fixed height based on photo count, with postcards arranged in a loose, organic spread.
+- Postcards have minimal overlap — just enough to feel organic (small negative margins) without obscuring content. Generous spacing so photos breathe.
+- Layout uses a CSS grid (`grid-cols-2 md:grid-cols-3`) so photos fill available space evenly — always 3 per row on desktop, 2 on mobile.
 
 **Adaptive behavior based on photo count:**
 
@@ -123,7 +112,7 @@ The signature visual element. Photos are presented as if scattered on a surface 
 | 1 | Single centered postcard, no rotation |
 | 2–4 | "Tossed on table" — postcards fanned out with slight overlap, centered in the content column |
 | 5–12 | Two loose rows, staggered, with varied rotation. Some postcards overlap neighbors |
-| 13+ | Three or more rows in a contained scrollable area (max height `500px`), horizontally scrollable on mobile. This prevents the section from becoming overwhelmingly tall |
+| 13+ | Three or more rows flowing naturally within the page. No inner scroll container — the page itself scrolls. The chapter nav allows skipping past long photo sections |
 
 **Interaction:**
 
@@ -135,7 +124,7 @@ The signature visual element. Photos are presented as if scattered on a surface 
 
 A full-screen overlay for viewing photos one at a time.
 
-**Opening:** when a user clicks/taps a photo (either the chapter hero or a postcard), the lightbox opens. The photo animates from its position in the page to the center of the screen using Framer Motion's `layoutId` shared layout animation. The background fades to a near-black overlay (`bg-black/90`).
+**Opening:** when a user clicks/taps a postcard photo, the lightbox opens with a quick opacity fade-in. The background fades to a near-black overlay (`bg-black/90`). (We tried Framer Motion `layoutId` shared layout animation here but it caused jank — the exit animation would snap the photo back to its grid position when navigating between photos. Simple opacity crossfade is cleaner and more reliable.)
 
 **Inside the lightbox:**
 
@@ -144,7 +133,7 @@ A full-screen overlay for viewing photos one at a time.
 - **Photo context:** a subtle bar at the bottom shows the chapter name and photo position (e.g., "Bangkok — 3 of 17"). Fades in/out on mouse movement (desktop) or is always visible (mobile).
 - **Close:** click the X button (top-right), press Escape, click outside the photo, or swipe down.
 
-**Closing animation:** the photo animates back to its position in the page (reverse of the opening). If the original position is off-screen, it fades out instead.
+**Closing animation:** the lightbox fades out with a quick opacity transition (matching the opening).
 
 **Photo loading:** since photos come from OPFS, they may take a moment. Show a centered spinner on the dark background while loading. Preload the next and previous photos in the background.
 
@@ -161,8 +150,7 @@ Photos are stored in OPFS and must be read as blobs, then converted to object UR
 - **Lazy loading:** only load photos for chapters that are near the viewport. Use `IntersectionObserver` with a `rootMargin` of `"200% 0px"` (two viewports ahead) to start loading chapter photos before the user scrolls to them.
 - **Per-chapter batching:** when a chapter enters the load zone, fetch all its photo metadata from IndexedDB (`getPhotosByChapter`), then load blobs from OPFS in parallel (with a concurrency limit of 4 to avoid overwhelming OPFS).
 - **Placeholders:** before a photo loads, render a placeholder div with `bg-muted` at the postcard's dimensions. The placeholder has the same rotation/position as the final postcard to avoid layout shift.
-- **Object URL cleanup:** revoke object URLs when a chapter scrolls far out of view (more than 3 viewports away). Re-create them if the user scrolls back. Track active URLs in a `Map<string, string>` in a context or hook.
-- **Memory budget:** if total active object URLs exceed ~100, evict the oldest (furthest from viewport) ones first. **Exception:** never evict URLs for the chapter currently displayed in the lightbox — pin all URLs for that chapter until the lightbox closes, then resume normal eviction.
+- **Object URL cleanup:** revoke object URLs when a chapter scrolls far out of view (more than 3 viewports away). Re-create them if the user scrolls back. Track active URLs in a `Map<string, string>` in a context or hook. The observer-based margin is the sole eviction mechanism — a separate memory budget was removed because it conflicted with the observer (two systems writing to the same eviction state) and could evict chapters the user was currently viewing. The 300% observer margin implicitly caps active URLs by limiting how many chapters can be loaded simultaneously. **Exception:** never evict URLs for the chapter currently displayed in the lightbox — pin that chapter until the lightbox closes.
 
 ### States
 
@@ -173,7 +161,7 @@ Photos are stored in OPFS and must be read as blobs, then converted to object UR
 | **Error** | Existing error state with retry button |
 | **Not found** | Existing 404 state |
 | **Chapter with no photos** | Chapter renders with metadata + description only, no photo section, no hero. Looks clean — like a text journal entry |
-| **Chapter with no description** | Hero photo + metadata + photo spread. No empty paragraph |
+| **Chapter with no description** | Metadata + photo spread. No empty paragraph |
 | **Chapter with nothing** | Metadata bar only (name, location, date). Still a valid entry in the timeline |
 
 ### Components
@@ -186,11 +174,10 @@ Photos are stored in OPFS and must be read as blobs, then converted to object UR
 | `BackButton` | Exists | No changes |
 | `TripDetailPage` | Exists | **Modify** — replace `ChapterTimeline` with new `ChapterShowcase`, add `ChapterNav` |
 | `ChapterShowcase` | **New** | Renders all chapter sections with scroll observation |
-| `ChapterSection` | **New** | Single chapter: hero + metadata + description + photos |
-| `ChapterNav` | **New** | Sticky sidebar (desktop) / pill (tablet) / top strip (mobile) |
-| `ChapterNavSidebar` | **New** | Desktop sidebar variant |
-| `ChapterNavPill` | **New** | Tablet floating pill variant |
-| `ChapterNavStrip` | **New** | Mobile horizontal strip variant |
+| `ChapterSection` | **New** | Single chapter: metadata + description + photo spread (no hero) |
+| `ChapterNav` | **New** | Sticky sidebar (desktop) / floating pill (tablet + mobile) |
+| `ChapterNavSidebar` | **New** | Desktop sidebar variant (scrollable for many chapters) |
+| `ChapterNavPill` | **New** | Tablet + mobile floating pill variant |
 | `PostcardGrid` | **New** | Scattered postcard photo layout |
 | `PostcardPhoto` | **New** | Single photo with polaroid border, rotation, hover lift |
 | `PhotoLightbox` | **New** | Full-screen photo viewer with navigation |
@@ -366,7 +353,7 @@ Reduced motion: instant scroll (`behavior: "auto"` instead of `"smooth"`).
 
 ### Spacing
 
-- Between chapter sections: `py-16 md:py-24` — generous breathing room.
+- Between chapter sections: `py-8 md:py-14` — moderate breathing room.
 - Content column remains `max-w-[720px]` with `px-4 md:px-8`.
 - Chapter hero photos break out of the content column to full viewport width.
 - Postcard grid sits within the content column.
@@ -405,9 +392,9 @@ Every section above specifies its reduced-motion fallback. The general rule: rem
 
 ## Mobile Behavior
 
-- **Chapter heroes:** full-width, max-height `50vh` (instead of `70vh` on desktop) to leave room for content.
-- **Postcard layout:** reduces to 2 columns max. Less rotation (max +-2deg) to avoid awkward clipping. For 13+ photos, horizontal scroll strip instead of vertical scroll area.
-- **Chapter nav:** horizontal dot strip (48px tall) sticky at top. Scrollable.
+- **No hero photos** — all photos treated equally in postcard spread.
+- **Postcard layout:** reduces to 2 columns max. Less rotation (max +-2deg) to avoid awkward clipping. Photos flow naturally within the page — no inner scroll containers.
+- **Chapter nav:** floating pill at bottom-center (same as tablet). Tapping opens chapter list.
 - **Globe:** hidden behind a floating action button. Tapping opens it.
 - **Lightbox:** swipe-to-navigate, swipe-down-to-close. Full-screen.
 - **Crossfade & Ken Burns (P3):** disabled on mobile (performance). Heroes scroll normally, no sticky crossfade or zoom.

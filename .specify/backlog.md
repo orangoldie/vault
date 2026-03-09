@@ -6,6 +6,10 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 
 - **Photo ordering within a chapter**: Travel exports don't include explicit photo ordering metadata. Filenames are UUID-based, so alphabetical order is effectively random. Need to investigate if there's a timestamp in EXIF data or if the export preserves any implicit ordering (e.g., file position in the ZIP, or a photos array in the JSON). Also investigate whether we can infer which photo should be the "hero" for each chapter (e.g., cover photo metadata, first photo in the export array, EXIF timestamp closest to chapter start time). Currently P1 uses arbitrary IndexedDB return order — revisit once we understand the data better.
 
+## Bugs
+
+- **ChapterNavPill popover doesn't close on scroll**: The scroll listener in `chapter-nav-pill.tsx` is wired up correctly (`useEffect` + `window.addEventListener("scroll", ...)`) but never fires. Console logs confirmed the effect doesn't run, suggesting the component may not be mounting — possibly a caching issue or stale build. Need to inspect the rendered pill element in DevTools to confirm which component is actually rendering. Code: `src/features/trip-detail/components/chapter-nav-pill.tsx` lines 37-45.
+
 ## Future Feature Ideas
 
 - **Weather condition icons**: Map Dark Sky condition slugs (`clear-day`, `clear-night`, `partly-cloudy-day`, `partly-cloudy-night`, `cloudy`, `rain`, `snow`, `wind`, `fog`) to visual icons in the chapter timeline. Include fallback for unknown slugs and accessible labels. Extracted from spec 04 to keep scope tight.

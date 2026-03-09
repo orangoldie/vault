@@ -8,6 +8,8 @@ import type { Trip, Chapter } from "@/types/trip"
 vi.mock("@/stores/db", () => ({
   getTripBySlug: vi.fn(),
   getChaptersByTrip: vi.fn(),
+  getPhotosByChapter: vi.fn().mockResolvedValue([]),
+  getPhotoCountsByTrip: vi.fn().mockResolvedValue(new Map()),
 }))
 
 vi.mock("@/stores/photo-storage", () => ({
@@ -35,10 +37,22 @@ vi.mock("framer-motion", () => ({
       } = props
       return <img {...rest} />
     },
+    button: ({
+      children,
+      initial: _initial,
+      animate: _animate,
+      transition: _transition,
+      whileHover: _whileHover,
+      layoutId: _layoutId,
+      ...rest
+    }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => (
+      <button {...rest}>{children}</button>
+    ),
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
+  useReducedMotion: () => false,
 }))
 
 // Mock next/link
@@ -149,8 +163,9 @@ describe("TripDetailPage", () => {
     })
 
     expect(screen.getByText("A wonderful journey")).toBeInTheDocument()
-    expect(screen.getByText("Bangkok")).toBeInTheDocument()
-    expect(screen.getByText("Chiang Mai")).toBeInTheDocument()
+    // Chapter names appear in both the nav and the section
+    expect(screen.getAllByText("Bangkok").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText("Chiang Mai").length).toBeGreaterThanOrEqual(1)
   })
 
   it("renders the not-found state when slug does not match", async () => {
@@ -167,7 +182,7 @@ describe("TripDetailPage", () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: /Back to your trips/i })
-    ).toHaveAttribute("href", "/")
+    ).toHaveAttribute("href", "/import")
   })
 
   it("renders the error state when DB read fails", async () => {

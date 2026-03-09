@@ -7,7 +7,7 @@ import { useTripDetail } from "../lib/use-trip-detail"
 import { BackButton } from "./back-button"
 import { HeroCover } from "./hero-cover"
 import { TripHeader } from "./trip-header"
-import { ChapterTimeline } from "./chapter-timeline"
+import { ChapterShowcase } from "./chapter-showcase"
 import { TripNotFound } from "./trip-not-found"
 import { TripDetailError } from "./trip-detail-error"
 import { TripDetailSkeleton } from "./trip-detail-skeleton"
@@ -17,7 +17,7 @@ interface TripDetailPageProps {
 }
 
 export function TripDetailPage({ slug }: TripDetailPageProps) {
-  const { status, trip, chapters, coverPhotoUrl, retry } = useTripDetail(slug)
+  const { status, trip, chapters, coverPhotoUrl, photoCountsByChapter, retry } = useTripDetail(slug)
   const containerRef = useRef<HTMLDivElement>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
@@ -92,14 +92,12 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
           )}
 
           <div className="mx-auto w-full max-w-[720px] px-4 py-8 md:px-8">
-            <div className="flex flex-col gap-8">
-              <TripHeader
-                trip={trip}
-                hasCover={hasCover}
-              />
-              <ChapterTimeline chapters={chapters} />
-            </div>
+            <TripHeader
+              trip={trip}
+              hasCover={hasCover}
+            />
           </div>
+          <ChapterShowcase chapters={chapters} photoCountsByChapter={photoCountsByChapter ?? new Map()} />
         </motion.div>
       )}
     </div>

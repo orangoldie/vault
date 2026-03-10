@@ -18,6 +18,7 @@ const NAVIGATE_SCROLL_INSET = ACTIVE_ZONE_TOP_INSET + 0.01
 interface ChapterShowcaseProps {
   chapters: Chapter[]
   photoCountsByChapter: Map<number, number>
+  onActiveIndexChange?: (index: number) => void
 }
 
 /** Error boundary that catches render errors in individual chapters. */
@@ -97,7 +98,7 @@ function ChapterWithPhotos({
   )
 }
 
-export function ChapterShowcase({ chapters, photoCountsByChapter }: ChapterShowcaseProps) {
+export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexChange }: ChapterShowcaseProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [navVisible, setNavVisible] = useState(false)
   const [loadableChapters, setLoadableChapters] = useState<Set<number>>(
@@ -140,6 +141,7 @@ export function ChapterShowcase({ chapters, photoCountsByChapter }: ChapterShowc
         }
         if (bestIdx !== -1) {
           setActiveIndex(bestIdx)
+          onActiveIndexChange?.(bestIdx)
         }
       },
       {

@@ -15,7 +15,7 @@ The redesign is too large for a single spec. It splits into three phases, each s
 | Phase | Scope | New Dependencies |
 |---|---|---|
 | **P1 — Chapter Showcase** ✅ | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
-| **P2 — Globe** | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay | `three`, `@react-three/fiber`, `@react-three/drei` |
+| **P2 — Globe** ⏳ | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay | `maplibre-gl`, `@vis.gl/react-maplibre`, `pmtiles`, `@protomaps/basemaps` |
 | **P3 — Motion & Atmosphere** | Paper-unfold entrance, parallax depth layers, crossfade transitions, weather-driven ambient color, hand-drawn route line, scroll-to-top button | None |
 
 Each phase has its own section below. A phase builds on the previous one but does not break the page if shipped alone.
@@ -198,14 +198,12 @@ The `useTripDetail` hook currently loads the trip and chapters but no photos. Fo
 
 ### 3D Globe with Compass Rose
 
-A small interactive 3D earth rendered with `react-three-fiber`, positioned in the bottom-right corner of the viewport on desktop, or hidden behind a floating button on mobile.
+A small interactive globe rendered with MapLibre GL (`globe` projection) and Protomaps vector tiles, positioned in the bottom-right corner of the viewport on desktop, or hidden behind a floating button on mobile. Map tiles are self-hosted as a bundled PMTiles file (`public/textures/globe.pmtiles`), with fonts and sprites in `public/map-assets/`. No external CDN dependencies at runtime.
 
 **Visual design:**
 
-- Earth sphere with a natural-color texture (an off-the-shelf earth texture that fits the overall aesthetic).
-- Subtle atmosphere glow: a soft golden rim light around the sphere edge (using `drei`'s `Atmosphere` or a custom shader), matching `vault-gold`.
-- Slow idle rotation (0.1rpm) when not tracking a chapter.
-- The globe sits inside a **compass rose frame**: a decorative SVG border with cardinal direction markers (N, S, E, W) rendered in `vault-gold-dim`. The compass rose is 2D, layered behind/around the 3D canvas. It gives the globe a "navigator's instrument" feel rather than a floating sphere.
+- Globe uses a custom "vault" color flavor (defined in `globe-style.ts`): warm beige landmasses, muted slate-blue oceans, parchment-toned roads and labels. Based on the Protomaps `light` flavor with all color tokens overridden to match the vault palette.
+- The globe sits inside a **compass rose frame**: a decorative SVG border with cardinal direction markers (N, S, E, W) rendered in `vault-gold-dim`, positioned outside the outer ring for clarity. The compass rose is 2D, layered behind/around the map canvas. It gives the globe a "navigator's instrument" feel rather than a floating sphere.
 
 **Size and position:**
 
@@ -215,8 +213,8 @@ A small interactive 3D earth rendered with `react-three-fiber`, positioned in th
 **Scroll-synced rotation:**
 
 - As the user scrolls through chapters, the globe smoothly rotates to center on the active chapter's `lat`/`lon`.
-- A glowing dot (small sphere with emissive material in `vault-gold`) pulses at the chapter's coordinates on the globe surface.
-- The rotation uses spherical interpolation (slerp) for smooth movement between chapter positions.
+- A glowing dot in `vault-gold` pulses at the active chapter's coordinates on the globe surface (`pulse-glow` CSS keyframe animation, 2s cycle).
+- The rotation uses MapLibre's `flyTo` for smooth movement between chapter positions.
 - Rotation is driven by the same `IntersectionObserver` that powers the sticky nav — when the active chapter changes, the globe animates to the new position over ~800ms.
 
 **Interaction:**
@@ -229,26 +227,31 @@ Clicking the globe opens a full-viewport overlay showing the globe at large scal
 
 **Layout:**
 
-- The globe scales from its corner position to fill ~70% of the viewport width (centered), with a dark semi-transparent backdrop (`bg-black/80`).
-- All chapter locations are rendered as dots on the globe surface, connected by curved arc lines (great circle arcs rendered as `drei` `Line` geometry or `THREE.CurvePath`).
-- Each dot is labeled with the chapter name (using `drei`'s `Html` component for DOM labels positioned in 3D space).
-- The route arcs animate in sequentially — the first arc draws itself from chapter 1 to chapter 2, then 2 to 3, etc. Total animation duration ~2 seconds.
-- The active chapter's dot is highlighted (larger, brighter glow).
+- The globe is centered on the viewport at ~70% width, with the chapter sidebar positioned absolutely to its left. Dark backdrop (`bg-black/95`).
+- All chapter locations are rendered as **pin markers** on the globe surface (no floating labels — the popover reveals the name on click). Pins use `vault-gold` for the active/selected state and `vault-gold-dim` for others. Connected by curved arc lines (great circle arcs).
+- ⏳ **NOT YET IMPLEMENTED** — The route arcs animate in sequentially — the first arc draws itself from chapter 1 to chapter 2, then 2 to 3, etc. Total animation duration ~2 seconds. Arcs are great-circle curves rendered as MapLibre GeoJSON line layers with `line-dasharray` (globe projection handles great-circle curvature automatically — no manual arc math needed). Sequential draw-in achieved by progressively extending LineString coordinates via `requestAnimationFrame`.
+- ⏳ **NOT YET IMPLEMENTED** — **Continuous marching animation:** after the initial draw-in completes, all arcs switch to a looping "marching dashes" animation. The dashes flow chronologically — from earlier chapter to later chapter — creating a visible sense of travel progression along the route. The effect should be noticeable, not subtle: `line-dasharray` values cycled via `requestAnimationFrame` loop at ~30px/s. All arcs animate simultaneously and continuously while the overlay is open. Stroke color: `vault-gold-dim`, 2px width. Implementation: `requestAnimationFrame` loop shifting `line-dasharray` paint property while the overlay is mounted.
+- The currently active chapter's pin is highlighted (larger, brighter glow) by default when the overlay opens.
 
 **Interaction in expanded mode:**
 
+The overlay is an **exploration-first** tool. Clicking a pin selects it for preview — navigation requires a second deliberate action.
+
 - Drag to rotate the globe and explore all chapter locations.
-- Click a chapter dot or label to close the overlay and smooth-scroll to that chapter on the page.
-- Close button (top-right) or Escape to close. The globe animates back to its corner position.
+- **Selecting a pin:** clicking a pin (teardrop SVG marker) on the globe selects it — the pin enlarges and a small **popover** appears above it showing the chapter name and a "Go" button. The corresponding entry in the chapter sidebar also highlights. Clicking a different pin deselects the previous one and selects the new one. Clicking the same pin again deselects it. Selected markers render at a higher z-index so the popover is never obscured by neighboring pins.
+- **Selecting from the sidebar:** clicking a chapter in the sidebar list selects that pin — the globe flies to center on it and shows the popover. This mirrors the pin interaction in reverse.
+- **Navigating:** clicking "Go to chapter" in the popover (or a similar action button in the sidebar) closes the overlay and smooth-scrolls to that chapter on the page.
+- **Backdrop click** always closes the overlay (no intermediate deselect step).
+- Close button (top-right) or Escape to close.
 
 **Mobile:** the expanded globe fills the full screen.
 
 ### Performance Considerations
 
 - The globe canvas renders at device pixel ratio capped at 2 to save GPU.
-- When the globe is not visible (scrolled off screen or on a page without a trip), the render loop pauses (`frameloop="demand"` in R3F).
-- Earth texture is a single compressed image (~200KB), loaded lazily after the page content renders.
-- The globe is loaded via `React.lazy` + `Suspense` so it doesn't block initial page render. The compass rose frame renders immediately as an SVG placeholder.
+- When the mini globe is not visible (scrolled back to top), the render loop pauses via `map.stop()` and resumes with `map.triggerRepaint()` when visible again. The overlay globe doesn't need this — it unmounts when closed.
+- Map tiles are bundled as a PMTiles vector tile file (`public/textures/globe.pmtiles`). Fonts (3 Noto Sans stacks, 768 .pbf files) and sprites are self-hosted in `public/map-assets/`, tracked via Git LFS. No runtime CDN dependencies.
+- The globe uses `"use client"` with `typeof window` guards to avoid SSR issues with WebGL/MapLibre. No `next/dynamic` needed — the globe will be visible on initial page load in future iterations.
 
 ---
 
@@ -372,7 +375,7 @@ Reduced motion: instant scroll (`behavior: "auto"` instead of `"smooth"`).
 - **Chapter nav:** all chapter nodes/dots are focusable buttons. Enter/Space triggers smooth-scroll to that chapter.
 - **Postcard photos:** each photo is a focusable button. Enter/Space opens the lightbox.
 - **Lightbox:** focus trapped. Arrow keys navigate photos. Escape closes. Focus returns to the trigger photo on close.
-- **Globe:** the expand button is focusable. The 3D canvas itself is not keyboard-navigable (3D drag is mouse/touch only), but the expanded overlay's chapter labels are focusable buttons.
+- **Globe:** the expand button is focusable. The 3D canvas itself is not keyboard-navigable (drag is mouse/touch only), but the expanded overlay's chapter labels are focusable buttons.
 
 ### Screen Readers
 

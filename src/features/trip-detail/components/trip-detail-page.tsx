@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 
 import { useTripDetail } from "../lib/use-trip-detail"
@@ -8,6 +8,7 @@ import { BackButton } from "./back-button"
 import { HeroCover } from "./hero-cover"
 import { TripHeader } from "./trip-header"
 import { ChapterShowcase } from "./chapter-showcase"
+import { TripGlobe } from "./trip-globe"
 import { TripNotFound } from "./trip-not-found"
 import { TripDetailError } from "./trip-detail-error"
 import { TripDetailSkeleton } from "./trip-detail-skeleton"
@@ -20,6 +21,8 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
   const { status, trip, chapters, coverPhotoUrl, photoCountsByChapter, retry } = useTripDetail(slug)
   const containerRef = useRef<HTMLDivElement>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  const [globeActiveIndex, setGlobeActiveIndex] = useState(0)
+  const [globeVisible, setGlobeVisible] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -45,6 +48,27 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
       })
     }
   }, [status])
+
+  // Show globe once scrolled past the header
+  useEffect(() => {
+    function handleScroll() {
+      setGlobeVisible(window.scrollY > 400)
+    }
+    handleScroll()
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const handleActiveIndexChange = useCallback((index: number) => {
+    setGlobeActiveIndex(index)
+  }, [])
+
+  const handleGlobeNavigate = useCallback(
+    (index: number) => {
+      setGlobeActiveIndex(index)
+    },
+    []
+  )
 
   const hasCover = Boolean(coverPhotoUrl)
 
@@ -97,7 +121,17 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
               hasCover={hasCover}
             />
           </div>
-          <ChapterShowcase chapters={chapters} photoCountsByChapter={photoCountsByChapter ?? new Map()} />
+          <ChapterShowcase
+            chapters={chapters}
+            photoCountsByChapter={photoCountsByChapter ?? new Map()}
+            onActiveIndexChange={handleActiveIndexChange}
+          />
+          <TripGlobe
+            chapters={chapters}
+            activeIndex={globeActiveIndex}
+            visible={globeVisible}
+            onNavigate={handleGlobeNavigate}
+          />
         </motion.div>
       )}
     </div>

@@ -10,6 +10,10 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 
 - **ChapterNavPill popover doesn't close on scroll**: The scroll listener in `chapter-nav-pill.tsx` is wired up correctly (`useEffect` + `window.addEventListener("scroll", ...)`) but never fires. Console logs confirmed the effect doesn't run, suggesting the component may not be mounting — possibly a caching issue or stale build. Need to inspect the rendered pill element in DevTools to confirm which component is actually rendering. Code: `src/features/trip-detail/components/chapter-nav-pill.tsx` lines 37-45.
 
+## Housekeeping
+
+- **Create a LICENSE file**: Add a project license file that includes third-party attribution for OpenStreetMap (ODbL), Protomaps (BSD-3-Clause), and other open-source dependencies used in the project.
+
 ## Future Feature Ideas
 
 - **Weather condition icons**: Map Dark Sky condition slugs (`clear-day`, `clear-night`, `partly-cloudy-day`, `partly-cloudy-night`, `cloudy`, `rain`, `snow`, `wind`, `fog`) to visual icons in the chapter timeline. Include fallback for unknown slugs and accessible labels. Extracted from spec 04 to keep scope tight.
@@ -27,3 +31,6 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 - **Video support**: import and play video files from chapter directories
 - **GPS track import**: import `locations.json` route data for map display
 - **Data portability export**: export to markdown + images, structured JSON, or other open formats
+- **Globe lat/lon grid lines**: Add subtle latitude/longitude strip lines to the globe so it feels more like a real earth/navigational instrument
+- **Cross-chapter lightbox navigation**: When viewing chapter photos in the lightbox and reaching the last photo, allow navigating forward into the next chapter's photos seamlessly (and vice versa for the first photo going backwards)
+- **Bookmarks**: Allow users to bookmark a specific chapter or position in a trip so they can quickly jump back to it later

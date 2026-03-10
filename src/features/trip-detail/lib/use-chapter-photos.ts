@@ -15,6 +15,8 @@ interface ChapterPhotosState {
 }
 
 const CONCURRENCY_LIMIT = 4
+const MAX_RETRIES = 2
+const RETRY_DELAY_MS = 200
 
 export function useChapterPhotos(chapterId: number) {
   const [state, setState] = useState<ChapterPhotosState>({
@@ -40,15 +42,21 @@ export function useChapterPhotos(chapterId: number) {
         while (queue.length > 0) {
           if (abortRef.current) return
           const photo = queue.shift()!
-          try {
-            const blob = await readPhoto(photo.tripId, photo.chapterId, photo.filename)
-            if (blob && !abortRef.current) {
-              const url = URL.createObjectURL(blob)
-              urls.set(photo.id, url)
-              urlsRef.current.set(photo.id, url)
+          for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            if (abortRef.current) return
+            try {
+              const blob = await readPhoto(photo.tripId, photo.chapterId, photo.filename)
+              if (blob && !abortRef.current) {
+                const url = URL.createObjectURL(blob)
+                urls.set(photo.id, url)
+                urlsRef.current.set(photo.id, url)
+              }
+              break
+            } catch {
+              if (attempt < MAX_RETRIES) {
+                await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+              }
             }
-          } catch {
-            // Skip individual photo failures
           }
         }
       }

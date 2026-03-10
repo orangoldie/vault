@@ -142,6 +142,15 @@
   --sidebar-ring: hsl(220 55% 60%);
 }
 
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 3px hsl(32, 70%, 55%), 0 0 6px transparent;
+  }
+  50% {
+    box-shadow: 0 0 10px hsl(32, 80%, 60%), 0 0 28px hsl(32, 70%, 50%);
+  }
+}
+
 @keyframes float-particle {
   0%, 100% {
     transform: translateY(0) translateX(0);
@@ -169,6 +178,9 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  html {
+    scrollbar-gutter: stable;
   }
   body {
     @apply bg-background text-foreground;

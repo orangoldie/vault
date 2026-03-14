@@ -15,7 +15,7 @@ The redesign is too large for a single spec. It splits into three phases, each s
 | Phase | Scope | New Dependencies |
 |---|---|---|
 | **P1 — Chapter Showcase** ✅ | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
-| **P2 — Globe** ✅ | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay, route arcs | `maplibre-gl`, `@vis.gl/react-maplibre`, `pmtiles`, `@protomaps/basemaps` |
+| **P2 — Globe** ✅ | 280px interactive globe with compass rose frame, scroll-synced rotation, expanded map overlay, route arcs, chapter pins | `maplibre-gl`, `@vis.gl/react-maplibre`, `pmtiles`, `@protomaps/basemaps` |
 | **P3 — Motion & Atmosphere** | Paper-unfold entrance, parallax depth layers, crossfade transitions, weather-driven ambient color, hand-drawn route line, scroll-to-top button | None |
 
 Each phase has its own section below. A phase builds on the previous one but does not break the page if shipped alone.
@@ -198,17 +198,17 @@ The `useTripDetail` hook currently loads the trip and chapters but no photos. Fo
 
 ### 3D Globe with Compass Rose
 
-A small interactive globe rendered with MapLibre GL (`globe` projection) and Protomaps vector tiles, positioned in the bottom-right corner of the viewport on desktop, or hidden behind a floating button on mobile. Map tiles are self-hosted as a bundled PMTiles file (`public/textures/globe.pmtiles`), with fonts and sprites in `public/map-assets/`. No external CDN dependencies at runtime.
+An interactive globe rendered with MapLibre GL (`globe` projection) and Protomaps vector tiles, fixed to the right side of the viewport on desktop, or hidden behind a floating button on mobile. Map tiles are self-hosted as a bundled PMTiles file (`public/textures/globe.pmtiles`), with fonts and sprites in `public/map-assets/`. No external CDN dependencies at runtime.
 
 **Visual design:**
 
 - Globe uses a custom "vault" color flavor (defined in `globe-style.ts`): warm beige landmasses, muted slate-blue oceans, parchment-toned roads and labels. Based on the Protomaps `light` flavor with all color tokens overridden to match the vault palette.
-- The globe sits inside a **compass rose frame**: a decorative SVG border with cardinal direction markers (N, S, E, W) rendered in `vault-gold-dim`, positioned outside the outer ring for clarity. The compass rose is 2D, layered behind/around the map canvas. It gives the globe a "navigator's instrument" feel rather than a floating sphere.
+- The globe sits inside a **compass rose frame**: a decorative SVG border with cardinal direction markers (N, S, E, W) rendered in `vault-gold-dim`, positioned outside the outer ring for clarity. The compass rose includes concentric rings, cardinal/intercardinal tick marks, and minor 15-degree ticks. It gives the globe a "navigator's instrument" feel rather than a floating sphere.
 
 **Size and position:**
 
-- Desktop: 180px diameter, fixed to bottom-right with 24px margin. The compass rose extends ~20px beyond the sphere on each side, so the total footprint is about 220px.
-- Mobile: hidden by default. A small circular button (40px, globe icon) in the bottom-right corner. Tapping it reveals the globe in an expanding circle animation.
+- Desktop (`lg`+): 280px map canvas inside a 340px compass rose frame (30px padding around the canvas). Fixed to the right side (`right-4`), vertically centered on the viewport (`top-1/2 -translate-y-1/2`). Z-index 30. Appears after scrolling past 400px (past the trip header). The globe is a prominent navigational element, not a tucked-away widget.
+- Mobile (below `lg`): hidden by default. A 44px circular FAB (globe icon) fixed at `bottom-20 right-4`. Styled with `bg-vault-surface`, `ring-1 ring-vault-gold/20`, hover transitions to `bg-vault-gold`. Tapping opens the expanded overlay.
 
 **Scroll-synced rotation:**
 
@@ -273,22 +273,21 @@ When the trip detail page first loads (after data is ready), instead of a simple
 
 ### Depth Layers & Crossfade
 
-Each chapter section uses layered scroll effects to create a cinematic, immersive feel.
+Each chapter section uses layered scroll effects to create depth and a sense of progression. Since photo ordering is not deterministic (no timestamps or meaningful filenames), there is no designated "hero photo" per chapter — this is consistent with P1's equal-treatment postcard model.
 
-**Hero layer — sticky crossfade with Ken Burns zoom:**
+**Background layer — ambient crossfade:**
 
-- Each chapter's hero photo is `position: sticky` at the top of the viewport during that chapter's scroll range.
-- As the user scrolls from one chapter to the next, the outgoing hero fades out (opacity 1 → 0) while the incoming hero fades in (0 → 1), creating a dissolve transition rather than a hard cut. The transition zone is ~100px of overlap between chapters.
-- While stuck, the hero slowly zooms in via `scale(1.0)` → `scale(1.08)` over the chapter's scroll range (a Ken Burns effect), giving the photo a sense of life without conflicting with sticky positioning.
-- Opacity and scale are both driven by `useScroll` + `useTransform`, scoped to each chapter section's scroll progress.
+- Each chapter section has a full-width ambient background (driven by the weather tint from "Weather-Driven Ambient Color" above, or the default vault background if no weather data).
+- As the user scrolls from one chapter to the next, the outgoing chapter's ambient tint crossfades into the incoming chapter's tint over ~100px of overlap in the divider space. This creates a dissolve transition between chapters rather than a hard cut.
+- The crossfade is driven by `useScroll` + `useTransform`, scoped to the divider region between chapters.
 
-**Content layer** (metadata, description): moves at normal 1x scroll speed, scrolling over the sticky hero.
+**Content layer** (metadata, description): moves at normal 1x scroll speed. A subtle `translateY` entrance (20px → 0, opacity 0 → 1) triggers as each chapter scrolls into view, giving a gentle "rising into place" effect.
 
-**Foreground details** (postcard photos): moves at 1x scroll speed but has a slight vertical offset (`translateY`) that creates visual separation from the content layer above.
+**Foreground details** (postcard photos): moves at 1x scroll speed but with a slightly delayed entrance relative to the content layer (staggered by ~100ms per row), so the postcards appear to settle onto the page after the text.
 
-Implementation: Framer Motion `useScroll` + `useTransform` for both the crossfade opacity and the Ken Burns scale. Each chapter section is its own scroll-tracking container.
+Implementation: Framer Motion `useScroll` + `useTransform` for the ambient crossfade. `useInView` with `once: true` for the content/postcard entrance animations. Each chapter section is its own scroll-tracking container.
 
-Reduced motion: no crossfade, no zoom. Chapters are separated by whitespace, heroes scroll normally as static images.
+Reduced motion: no crossfade, no entrance animations. Chapters are separated by whitespace, content and photos render statically.
 
 ### Weather-Driven Ambient Color
 
@@ -325,11 +324,11 @@ Reduced motion: the line is fully drawn (no animation), rendered as a static dec
 
 A floating button that appears once the user has scrolled past the first chapter section (~2 viewports down).
 
-**Visual:** a small circular button (40px) in the bottom-right corner (above the globe on desktop, or in its place on mobile when the globe is hidden). Icon: upward chevron or arrow. Styled with `bg-vault-surface` and `vault-gold` icon, with a subtle shadow. Fades in/out based on scroll position.
+**Visual:** a small circular button (40px) in the bottom-right corner. Icon: upward chevron or arrow. Styled with `bg-vault-surface` and `vault-gold` icon, with a subtle shadow. Fades in/out based on scroll position.
 
 **Behavior:** smooth-scrolls to the top of the page (trip header). The button disappears once the user is back at the top.
 
-**Position:** on desktop, sits above the globe (if P2 is shipped) with 12px gap. On mobile, bottom-right corner with 16px margin.
+**Position:** on desktop, bottom-right corner (`bottom-6 right-4`). The globe is vertically centered on the right edge — the scroll-to-top button sits below it with no overlap. On mobile, bottom-right corner with 16px margin, above the globe FAB (`bottom-32 right-4`) to avoid stacking on the same spot.
 
 Reduced motion: instant scroll (`behavior: "auto"` instead of `"smooth"`).
 
@@ -354,7 +353,6 @@ Reduced motion: instant scroll (`behavior: "auto"` instead of `"smooth"`).
 
 - Between chapter sections: `py-8 md:py-14` — moderate breathing room.
 - Content column remains `max-w-[720px]` with `px-4 md:px-8`.
-- Chapter hero photos break out of the content column to full viewport width.
 - Postcard grid sits within the content column.
 
 ### Motion Principles
@@ -362,7 +360,7 @@ Reduced motion: instant scroll (`behavior: "auto"` instead of `"smooth"`).
 - All animations respect `prefers-reduced-motion`. Every animated component checks this and falls back to instant/static rendering.
 - Scroll-driven animations use `will-change: transform` and `transform` only (no layout-triggering properties) to stay on the compositor thread.
 - The globe render loop pauses when not visible.
-- Framer Motion is the animation library for DOM elements. Three.js handles 3D.
+- Framer Motion is the animation library for DOM elements. MapLibre GL handles 3D globe rendering.
 
 ---
 
@@ -394,9 +392,9 @@ Every section above specifies its reduced-motion fallback. The general rule: rem
 - **No hero photos** — all photos treated equally in postcard spread.
 - **Postcard layout:** reduces to 2 columns max. Less rotation (max +-2deg) to avoid awkward clipping. Photos flow naturally within the page — no inner scroll containers.
 - **Chapter nav:** floating pill at bottom-center (same as tablet). Tapping opens chapter list.
-- **Globe:** hidden behind a floating action button. Tapping opens it.
+- **Globe:** hidden behind a 44px FAB (`bottom-20 right-4`). Tapping opens full-screen expanded overlay.
 - **Lightbox:** swipe-to-navigate, swipe-down-to-close. Full-screen.
-- **Crossfade & Ken Burns (P3):** disabled on mobile (performance). Heroes scroll normally, no sticky crossfade or zoom.
+- **Crossfade & entrance animations (P3):** ambient tint crossfade is kept (lightweight). Content/postcard entrance animations are simplified — no stagger, just a single fade-in per chapter section.
 - **Paper-unfold (P3):** simplified to a quick fade-in (200ms) on mobile.
 
 ---
@@ -405,4 +403,4 @@ Every section above specifies its reduced-motion fallback. The general rule: rem
 
 - **Scroll to top:** Yes — floating button appears after scrolling past the first chapter. Included in P3.
 - **Postcard layout toggle:** No — the postcard layout is the layout. No grid toggle.
-- **Globe earth texture:** Bundled as a static image in `public/textures/` (~200KB, compressed). Works offline, no CDN dependency. The texture will be color-treated to match the vault palette (warm beige landmasses, muted slate oceans).
+- **Globe tiles:** Bundled as a PMTiles vector tile file (`public/textures/globe.pmtiles`) with self-hosted fonts and sprites in `public/map-assets/`. Works offline, no CDN dependency. Custom "vault" color flavor with warm beige landmasses and muted slate-blue oceans.

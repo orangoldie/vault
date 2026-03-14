@@ -34,3 +34,5 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 - **Globe lat/lon grid lines**: Add subtle latitude/longitude strip lines to the globe so it feels more like a real earth/navigational instrument
 - **Cross-chapter lightbox navigation**: When viewing chapter photos in the lightbox and reaching the last photo, allow navigating forward into the next chapter's photos seamlessly (and vice versa for the first photo going backwards)
 - **Bookmarks**: Allow users to bookmark a specific chapter or position in a trip so they can quickly jump back to it later
+- **Sidebar chapter grouping**: Group chapters in the sticky sidebar nav by country or city. Chapters sharing the same country (or city) would appear under a shared heading/divider, making long trips easier to scan. Useful for trips that revisit the same country or have many chapters in one location
+- **Google Drive backup**: Allow users to save/sync their vault data (trips, photos) to Google Drive for cloud backup and cross-device access

@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react"
 import { AnimatePresence } from "framer-motion"
 
-import { cn } from "@/lib/utils"
 import { countryFlagClass } from "@/lib/country-flag"
 import { formatDate, formatDateRange } from "@/lib/format-date"
 import type { Chapter, Photo } from "@/types/trip"
@@ -48,7 +47,6 @@ export function ChapterSection({
 
   const flagClass = countryFlagClass(chapter.location.countryCode)
   const weather = formatWeather(chapter)
-
   const openLightbox = useCallback((index: number) => {
     setLightboxIndex(index)
     onLightboxChange?.(chapter.id)
@@ -67,17 +65,16 @@ export function ChapterSection({
       {/* Content column */}
       <div className="mx-auto w-full max-w-[720px] px-4 md:px-8">
         {/* Metadata bar */}
-        <div className="flex flex-col gap-1">
+        <div dir="auto" className="flex flex-col gap-1">
           <h2
-            dir="auto"
             className="font-serif text-2xl font-semibold leading-tight text-primary md:text-3xl"
           >
-            <bdi>{chapter.displayName}</bdi>
+            {chapter.displayName}
           </h2>
 
           {chapter.location.detail && (
             <p className="text-sm text-muted-foreground">
-              {flagClass && <span className={`${flagClass} mr-1.5 inline-block size-4`} />}
+              {flagClass && <span className={`${flagClass} me-1.5 inline-block size-4`} />}
               {chapter.location.detail}
             </p>
           )}
@@ -85,7 +82,7 @@ export function ChapterSection({
           <p className="text-sm text-muted-foreground">
             {formatChapterDate(chapter)}
             {weather && (
-              <span className="ml-2 before:mr-2 before:content-['·']">
+              <span className="ms-2 before:me-2 before:content-['·']">
                 {weather}
               </span>
             )}
@@ -96,11 +93,9 @@ export function ChapterSection({
         {chapter.description && (
           <p
             dir="auto"
-            className={cn(
-              "mt-6 whitespace-pre-line text-base leading-relaxed text-primary"
-            )}
+            className="mt-6 whitespace-pre-line text-base leading-relaxed text-primary"
           >
-            <bdi>{chapter.description}</bdi>
+            {chapter.description}
           </p>
         )}
 

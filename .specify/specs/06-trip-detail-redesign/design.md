@@ -15,7 +15,7 @@ The redesign is too large for a single spec. It splits into three phases, each s
 | Phase | Scope | New Dependencies |
 |---|---|---|
 | **P1 — Chapter Showcase** ✅ | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
-| **P2 — Globe** ⏳ | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay | `maplibre-gl`, `@vis.gl/react-maplibre`, `pmtiles`, `@protomaps/basemaps` |
+| **P2 — Globe** ✅ | 3D interactive globe, compass rose frame, scroll-synced rotation, expanded map overlay, route arcs | `maplibre-gl`, `@vis.gl/react-maplibre`, `pmtiles`, `@protomaps/basemaps` |
 | **P3 — Motion & Atmosphere** | Paper-unfold entrance, parallax depth layers, crossfade transitions, weather-driven ambient color, hand-drawn route line, scroll-to-top button | None |
 
 Each phase has its own section below. A phase builds on the previous one but does not break the page if shipped alone.
@@ -228,9 +228,7 @@ Clicking the globe opens a full-viewport overlay showing the globe at large scal
 **Layout:**
 
 - The globe is centered on the viewport at ~70% width, with the chapter sidebar positioned absolutely to its left. Dark backdrop (`bg-black/95`).
-- All chapter locations are rendered as **pin markers** on the globe surface (no floating labels — the popover reveals the name on click). Pins use `vault-gold` for the active/selected state and `vault-gold-dim` for others. Connected by curved arc lines (great circle arcs).
-- ⏳ **NOT YET IMPLEMENTED** — The route arcs animate in sequentially — the first arc draws itself from chapter 1 to chapter 2, then 2 to 3, etc. Total animation duration ~2 seconds. Arcs are great-circle curves rendered as MapLibre GeoJSON line layers with `line-dasharray` (globe projection handles great-circle curvature automatically — no manual arc math needed). Sequential draw-in achieved by progressively extending LineString coordinates via `requestAnimationFrame`.
-- ⏳ **NOT YET IMPLEMENTED** — **Continuous marching animation:** after the initial draw-in completes, all arcs switch to a looping "marching dashes" animation. The dashes flow chronologically — from earlier chapter to later chapter — creating a visible sense of travel progression along the route. The effect should be noticeable, not subtle: `line-dasharray` values cycled via `requestAnimationFrame` loop at ~30px/s. All arcs animate simultaneously and continuously while the overlay is open. Stroke color: `vault-gold-dim`, 2px width. Implementation: `requestAnimationFrame` loop shifting `line-dasharray` paint property while the overlay is mounted.
+- All chapter locations are rendered as **pin markers** on the globe surface (no floating labels — the popover reveals the name on click). Pins use `vault-gold` for the active/selected state and `vault-gold-dim` for others. Connected by a dotted arc line (GeoJSON LineString with `line-dasharray`, globe projection handles great-circle curvature automatically).
 - The currently active chapter's pin is highlighted (larger, brighter glow) by default when the overlay opens.
 
 **Interaction in expanded mode:**

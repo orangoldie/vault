@@ -33,6 +33,10 @@ vi.mock("@vis.gl/react-maplibre", () => ({
     longitude: number
     latitude: number
   }) => <div data-testid="maplibre-marker">{children}</div>,
+  Source: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="maplibre-source">{children}</div>
+  ),
+  Layer: () => <div data-testid="maplibre-layer" />,
 }))
 
 // Mock maplibre CSS import

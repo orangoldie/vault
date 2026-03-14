@@ -5,7 +5,7 @@ import { ArrowRight, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import maplibregl from "maplibre-gl"
 import { Protocol } from "pmtiles"
-import { Map, Marker } from "@vis.gl/react-maplibre"
+import { Map, Marker, Source, Layer } from "@vis.gl/react-maplibre"
 import "maplibre-gl/dist/maplibre-gl.css"
 
 import type { Chapter } from "@/types/trip"
@@ -103,6 +103,23 @@ export function GlobeOverlay({
   }, [mapReady, selectedIndex, chapters])
 
   const style = useMemo(() => createGlobeStyle("vault"), [])
+
+  const routeGeoJson = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          properties: {},
+          geometry: {
+            type: "LineString" as const,
+            coordinates: chapters.map((ch) => [ch.location.lon, ch.location.lat]),
+          },
+        },
+      ],
+    }),
+    [chapters]
+  )
 
   const handleLoad = useCallback((e: maplibregl.MapLibreEvent) => {
     const map = e.target
@@ -232,6 +249,7 @@ export function GlobeOverlay({
             >
               <Map
                 mapStyle={style}
+                projection="globe"
                 style={{ width: "100%", height: "100%" }}
                 initialViewState={{
                   longitude: activeChapter?.location.lon ?? 0,
@@ -241,6 +259,21 @@ export function GlobeOverlay({
                 attributionControl={false}
                 onLoad={handleLoad}
               >
+              <Source id="route-overlay" type="geojson" data={routeGeoJson}>
+                <Layer
+                  id="route-overlay-line"
+                  type="line"
+                  layout={{
+                    "line-cap": "round",
+                  }}
+                  paint={{
+                    "line-color": "hsl(32, 70%, 55%)",
+                    "line-width": 2,
+                    "line-opacity": 0.5,
+                    "line-dasharray": [1.5, 2.5],
+                  }}
+                />
+              </Source>
               {chapters.map((ch, i) => {
                 const isHighlighted = i === highlightedIndex
                 const isSelected = selectedIndex === i

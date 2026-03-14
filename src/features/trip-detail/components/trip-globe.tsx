@@ -5,7 +5,7 @@ import { Globe as GlobeIcon } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import maplibregl from "maplibre-gl"
 import { Protocol } from "pmtiles"
-import { Map, Marker } from "@vis.gl/react-maplibre"
+import { Map, Marker, Source, Layer } from "@vis.gl/react-maplibre"
 import "maplibre-gl/dist/maplibre-gl.css"
 
 import type { Chapter } from "@/types/trip"
@@ -31,8 +31,8 @@ interface TripGlobeProps {
   onNavigate: (index: number) => void
 }
 
-const GLOBE_SIZE = 180
-const FRAME_SIZE = 220
+const GLOBE_SIZE = 280
+const FRAME_SIZE = 340
 const GLOBE_OFFSET = (FRAME_SIZE - GLOBE_SIZE) / 2
 
 export function TripGlobe({
@@ -42,6 +42,7 @@ export function TripGlobe({
   onNavigate,
 }: TripGlobeProps) {
   const mapRef = useRef<maplibregl.Map | null>(null)
+  const userDragged = useRef(false)
   const [expanded, setExpanded] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [mapReady, setMapReady] = useState(false)
@@ -61,18 +62,63 @@ export function TripGlobe({
 
   const style = useMemo(() => createGlobeStyle("vault"), [])
 
+  const routeGeoJson = useMemo(
+    () => ({
+      type: "FeatureCollection" as const,
+      features: [
+        {
+          type: "Feature" as const,
+          properties: {},
+          geometry: {
+            type: "LineString" as const,
+            coordinates: chapters.map((ch) => [ch.location.lon, ch.location.lat]),
+          },
+        },
+      ],
+    }),
+    [chapters]
+  )
+
   // Fly to active chapter
   useEffect(() => {
     if (!mapReady || !mapRef.current || chapters.length === 0) return
     const chapter = chapters[activeIndex]
     if (!chapter) return
 
+    userDragged.current = false
     mapRef.current.flyTo({
       center: [chapter.location.lon, chapter.location.lat],
-      zoom: 3,
-      duration: prefersReducedMotion ? 0 : 800,
+      zoom: 3.5,
+      duration: prefersReducedMotion ? 0 : 1000,
     })
   }, [mapReady, activeIndex, chapters, prefersReducedMotion])
+
+  // Track when user manually drags the globe
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+    const map = mapRef.current
+    const onDragEnd = () => { userDragged.current = true }
+    map.on("dragend", onDragEnd)
+    return () => { map.off("dragend", onDragEnd) }
+  }, [mapReady])
+
+  // Snap back to active chapter on page scroll after user drag
+  useEffect(() => {
+    function handleScroll() {
+      if (!userDragged.current || !mapRef.current || chapters.length === 0) return
+      const chapter = chapters[activeIndex]
+      if (!chapter) return
+
+      userDragged.current = false
+      mapRef.current.flyTo({
+        center: [chapter.location.lon, chapter.location.lat],
+        zoom: 3.5,
+        duration: prefersReducedMotion ? 0 : 800,
+      })
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [activeIndex, chapters, prefersReducedMotion])
 
   // Pause/resume render loop based on visibility
   useEffect(() => {
@@ -91,14 +137,25 @@ export function TripGlobe({
     mapRef.current = map
     // Cap device pixel ratio at 2 to save GPU
     map.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    // Disable interactions on the mini globe
-    map.dragRotate.disable()
-    map.scrollZoom.disable()
-    map.touchZoomRotate.disable()
-    map.doubleClickZoom.disable()
-    map.dragPan.disable()
     setMapReady(true)
   }, [])
+
+  const handleMarkerClick = useCallback(
+    (index: number) => {
+      const chapter = chapters[index]
+      if (!chapter) return
+      const section = document.querySelector(
+        `[data-chapter-section][data-chapter-id="${chapter.id}"]`
+      )
+      if (!section) return
+      const y =
+        section.getBoundingClientRect().top +
+        window.scrollY -
+        window.innerHeight * 0.03
+      window.scrollTo({ top: y, behavior: "smooth" })
+    },
+    [chapters]
+  )
 
   const handleExpand = useCallback(() => {
     setExpanded(true)
@@ -120,21 +177,11 @@ export function TripGlobe({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="fixed bottom-6 right-6 z-30 hidden md:block"
+            className="fixed right-4 top-1/2 z-30 hidden -translate-y-1/2 lg:block"
           >
             <div
-              className="group relative cursor-pointer"
+              className="group relative"
               style={{ width: FRAME_SIZE, height: FRAME_SIZE }}
-              onClick={handleExpand}
-              role="button"
-              tabIndex={0}
-              aria-label="View trip on globe"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault()
-                  handleExpand()
-                }
-              }}
             >
               {/* Compass rose frame */}
               <CompassRose
@@ -154,28 +201,45 @@ export function TripGlobe({
               >
                 <Map
                   mapStyle={style}
+                  projection="globe"
                   style={{ width: GLOBE_SIZE, height: GLOBE_SIZE }}
                   initialViewState={{
                     longitude: activeChapter?.location.lon ?? 0,
                     latitude: activeChapter?.location.lat ?? 20,
-                    zoom: 2.5,
+                    zoom: 3,
                   }}
                   attributionControl={false}
                   onLoad={handleLoad}
-                  interactive={false}
                 >
+                  <Source id="route" type="geojson" data={routeGeoJson}>
+                    <Layer
+                      id="route-line"
+                      type="line"
+                      layout={{
+                        "line-cap": "round",
+                      }}
+                      paint={{
+                        "line-color": "hsl(32, 70%, 55%)",
+                        "line-width": 2,
+                        "line-opacity": 0.6,
+                        "line-dasharray": [1.5, 2.5],
+                      }}
+                    />
+                  </Source>
                   {chapters.map((ch, i) => (
                     <Marker
                       key={ch.id}
                       longitude={ch.location.lon}
                       latitude={ch.location.lat}
                     >
-                      <div
+                      <button
+                        onClick={() => handleMarkerClick(i)}
+                        aria-label={`Go to ${ch.displayName}`}
                         className={cn(
-                          "rounded-full transition-all duration-300",
+                          "cursor-pointer rounded-full transition-all duration-300",
                           i === activeIndex
-                            ? "h-2.5 w-2.5 shadow-[0_0_6px_hsl(32,70%,55%),0_0_14px_hsl(32,70%,55%)] animate-[pulse-glow_2s_ease-in-out_infinite]"
-                            : "h-1.5 w-1.5"
+                            ? "h-3.5 w-3.5 shadow-[0_0_8px_hsl(32,70%,55%),0_0_18px_hsl(32,70%,55%)] animate-[pulse-glow_2s_ease-in-out_infinite]"
+                            : "h-2 w-2 hover:h-3 hover:w-3"
                         )}
                         style={{
                           backgroundColor: "hsl(32, 70%, 55%)",
@@ -186,10 +250,14 @@ export function TripGlobe({
                 </Map>
               </div>
 
-              {/* Hover expand hint */}
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-vault-surface/90 px-2.5 py-0.5 text-[10px] font-medium text-vault-text-dim opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100">
+              {/* Expand button */}
+              <button
+                onClick={handleExpand}
+                aria-label="View trip on globe"
+                className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 cursor-pointer rounded-full bg-vault-surface/90 px-2.5 py-0.5 text-[10px] font-medium text-vault-text-dim shadow-sm backdrop-blur-sm transition-all hover:bg-vault-surface hover:text-vault-text opacity-0 group-hover:opacity-100"
+              >
                 Click to expand
-              </div>
+              </button>
 
               {/* OSM attribution */}
               <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] text-vault-text-dim/50">
@@ -210,7 +278,7 @@ export function TripGlobe({
             transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
             onClick={handleExpand}
             className={cn(
-              "fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg md:hidden",
+              "fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg lg:hidden",
               "bg-vault-surface text-vault-gold ring-1 ring-vault-gold/20",
               "transition-colors hover:bg-vault-gold hover:text-white"
             )}

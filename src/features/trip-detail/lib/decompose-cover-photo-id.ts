@@ -1,6 +1,6 @@
 export function decomposeCoverPhotoId(id: string): {
   tripId: number
-  chapterId: number
+  subdir: string
   filename: string
 } {
   const first = id.indexOf("-")
@@ -12,7 +12,7 @@ export function decomposeCoverPhotoId(id: string): {
 
   return {
     tripId: Number(id.slice(0, first)),
-    chapterId: Number(id.slice(first + 1, second)),
+    subdir: id.slice(first + 1, second),
     filename: id.slice(second + 1),
   }
 }

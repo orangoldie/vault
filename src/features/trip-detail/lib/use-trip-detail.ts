@@ -51,10 +51,10 @@ export function useTripDetail(slug: string) {
 
       if (trip.coverPhotoId) {
         try {
-          const { tripId, chapterId, filename } = decomposeCoverPhotoId(
+          const { tripId, subdir, filename } = decomposeCoverPhotoId(
             trip.coverPhotoId
           )
-          const blob = await readPhoto(tripId, chapterId, filename)
+          const blob = await readPhoto(tripId, subdir, filename)
           if (blob) {
             coverPhotoUrl = URL.createObjectURL(blob)
             coverUrlRef.current = coverPhotoUrl

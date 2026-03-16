@@ -48,7 +48,7 @@ export async function importTrip(
   // Phase 2: Parse trip data (another 5% — fast)
   onProgress({ phase: "reading", percent: 8, detail: "Reading trip data..." })
 
-  const { trip, chapters } = parseTrip(entries, tripDirPath)
+  const { trip, chapters, coverPhotoS3Url } = parseTrip(entries, tripDirPath)
 
   onProgress({ phase: "reading", percent: 10, detail: "Reading trip data..." })
 
@@ -116,6 +116,23 @@ export async function importTrip(
   // If no photos, jump to 100%
   if (totalPhotos === 0) {
     onProgress({ phase: "storing", percent: 100, detail: "Done" })
+  }
+
+  // Download cover photo from S3 — the export doesn't include it locally
+  if (coverPhotoS3Url) {
+    try {
+      const res = await fetch(coverPhotoS3Url)
+      if (res.ok) {
+        const blob = await res.blob()
+        const data = new Uint8Array(await blob.arrayBuffer())
+        const filename = "cover.jpg"
+        await writePhoto(trip.id, "cover", filename, data)
+        trip.coverPhotoId = `${trip.id}-cover-${filename}`
+        await saveTrip(trip)
+      }
+    } catch {
+      // Cover download failed (CORS, offline, etc.) — proceed without it
+    }
   }
 
   // Clean up orphaned photos from a previous import of this trip

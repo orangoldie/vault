@@ -18,13 +18,13 @@ async function getOrCreateDir(
 
 export async function writePhoto(
   tripId: number,
-  chapterId: number,
+  subdir: number | string,
   filename: string,
   data: Uint8Array
 ): Promise<void> {
   const root = await getPhotosRoot()
   const tripDir = await getOrCreateDir(root, String(tripId))
-  const chapterDir = await getOrCreateDir(tripDir, String(chapterId))
+  const chapterDir = await getOrCreateDir(tripDir, String(subdir))
   const fileHandle = await chapterDir.getFileHandle(filename, { create: true })
   const writable = await fileHandle.createWritable()
   await writable.write(data)
@@ -33,13 +33,13 @@ export async function writePhoto(
 
 export async function readPhoto(
   tripId: number,
-  chapterId: number,
+  subdir: number | string,
   filename: string
 ): Promise<Blob | null> {
   try {
     const root = await getPhotosRoot()
     const tripDir = await root.getDirectoryHandle(String(tripId))
-    const chapterDir = await tripDir.getDirectoryHandle(String(chapterId))
+    const chapterDir = await tripDir.getDirectoryHandle(String(subdir))
     const fileHandle = await chapterDir.getFileHandle(filename)
     return await fileHandle.getFile()
   } catch {

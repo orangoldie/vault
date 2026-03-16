@@ -60,41 +60,12 @@ export function scanTrips(entries: ZipEntries): ScannedTrip[] {
   return results
 }
 
-function resolveCoverPhotoId(
-  raw: RawTrip,
-  tripDirPath: string,
-  entries: ZipEntries
-): string | null {
-  if (!raw.cover_photo?.uuid) return null
-
-  // The cover_photo.path in the export is an S3 URL, not a local path.
-  // We need to find the matching photo file by UUID in the local chapter directories.
-  const coverUuid = raw.cover_photo.uuid
-
-  for (const filePath of Object.keys(entries)) {
-    if (!filePath.startsWith(tripDirPath)) continue
-    if (!filePath.includes("/photos/")) continue
-
-    // Photo filenames are UUID-based like: uuid_uuid.jpg.jpg
-    if (filePath.includes(coverUuid)) {
-      // Extract chapter info to build the photo ID
-      const relPath = filePath.slice(tripDirPath.length)
-      const chapterMatch = relPath.match(/^([^/]+)_(\d+)\/photos\/(.+)$/)
-      if (chapterMatch) {
-        const chapterId = parseInt(chapterMatch[2], 10)
-        const filename = chapterMatch[3]
-        return `${raw.id}-${chapterId}-${filename}`
-      }
-    }
-  }
-
-  return null
-}
-
 export interface ParsedTripData {
   trip: Trip
   chapters: Chapter[]
   tripDirPath: string
+  /** S3 URL for the cover photo — downloaded during import. */
+  coverPhotoS3Url: string | null
 }
 
 export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripData {
@@ -118,7 +89,7 @@ export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripD
     throw new ImportError("EMPTY_TRIP", "This trip has no chapters")
   }
 
-  const coverPhotoId = resolveCoverPhotoId(raw, tripDirPath, entries)
+  const coverPhotoS3Url = raw.cover_photo?.path ?? null
 
   const trip: Trip = {
     id: raw.id,
@@ -127,7 +98,7 @@ export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripD
     startDate: raw.start_date,
     endDate: raw.end_date,
     summary: sanitizeText(raw.summary),
-    coverPhotoId,
+    coverPhotoId: null,
     chapterCount: raw.step_count ?? raw.all_steps.length,
     photoCount: 0,
     totalKm: raw.total_km ?? 0,
@@ -156,5 +127,5 @@ export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripD
     uuid: rawStep.uuid,
   }))
 
-  return { trip, chapters, tripDirPath }
+  return { trip, chapters, tripDirPath, coverPhotoS3Url }
 }

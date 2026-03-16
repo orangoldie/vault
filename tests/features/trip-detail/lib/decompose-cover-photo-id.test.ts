@@ -3,12 +3,21 @@ import { describe, it, expect } from "vitest"
 import { decomposeCoverPhotoId } from "@/features/trip-detail/lib/decompose-cover-photo-id"
 
 describe("decomposeCoverPhotoId", () => {
-  it("splits a simple coverPhotoId into tripId, chapterId, and filename", () => {
+  it("splits a chapter-based coverPhotoId into tripId, subdir, and filename", () => {
     const result = decomposeCoverPhotoId("1-2-photo.jpg")
     expect(result).toEqual({
       tripId: 1,
-      chapterId: 2,
+      subdir: "2",
       filename: "photo.jpg",
+    })
+  })
+
+  it("handles the cover subdir for S3-downloaded covers", () => {
+    const result = decomposeCoverPhotoId("23101407-cover-cover.jpg")
+    expect(result).toEqual({
+      tripId: 23101407,
+      subdir: "cover",
+      filename: "cover.jpg",
     })
   })
 
@@ -16,7 +25,7 @@ describe("decomposeCoverPhotoId", () => {
     const result = decomposeCoverPhotoId("1-2-photo-2025-01-01.jpg")
     expect(result).toEqual({
       tripId: 1,
-      chapterId: 2,
+      subdir: "2",
       filename: "photo-2025-01-01.jpg",
     })
   })
@@ -25,7 +34,7 @@ describe("decomposeCoverPhotoId", () => {
     const result = decomposeCoverPhotoId("10-200-my.photo.file.png")
     expect(result).toEqual({
       tripId: 10,
-      chapterId: 200,
+      subdir: "200",
       filename: "my.photo.file.png",
     })
   })
@@ -34,7 +43,7 @@ describe("decomposeCoverPhotoId", () => {
     const result = decomposeCoverPhotoId("999999-888888-image.webp")
     expect(result).toEqual({
       tripId: 999999,
-      chapterId: 888888,
+      subdir: "888888",
       filename: "image.webp",
     })
   })
@@ -43,7 +52,7 @@ describe("decomposeCoverPhotoId", () => {
     const result = decomposeCoverPhotoId("1-2----.jpg")
     expect(result).toEqual({
       tripId: 1,
-      chapterId: 2,
+      subdir: "2",
       filename: "---.jpg",
     })
   })
@@ -64,14 +73,5 @@ describe("decomposeCoverPhotoId", () => {
     expect(() => decomposeCoverPhotoId("")).toThrow(
       /Invalid coverPhotoId format/
     )
-  })
-
-  it("returns NaN tripId for non-numeric first segment", () => {
-    // The function does not validate that tripId/chapterId are numbers;
-    // it just calls Number() on the segments
-    const result = decomposeCoverPhotoId("abc-def-file.jpg")
-    expect(result.tripId).toBeNaN()
-    expect(result.chapterId).toBeNaN()
-    expect(result.filename).toBe("file.jpg")
   })
 })

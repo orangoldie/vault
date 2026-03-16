@@ -16,7 +16,7 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 
 ## Future Feature Ideas
 
-- **Weather condition icons**: Map Dark Sky condition slugs (`clear-day`, `clear-night`, `partly-cloudy-day`, `partly-cloudy-night`, `cloudy`, `rain`, `snow`, `wind`, `fog`) to visual icons in the chapter timeline. Include fallback for unknown slugs and accessible labels. Extracted from spec 04 to keep scope tight.
+- **Complete weather icon mapping**: Weather icons are implemented in `src/features/trip-detail/lib/weather-icon.ts` using Lucide icons, rendered inline in chapter metadata (`chapter-section.tsx`). The mapping uses Visual Crossing condition slugs (kebab-case, with optional `-day`/`-night` suffix). **Confirmed from real export data:** `partly-cloudy-day` → `CloudSun`, `clear-day` → `Sun`, `cloudy` → `Cloud`. **Unconfirmed (added speculatively):** `clear-night`, `partly-cloudy-night`, `rain`, `showers-day`, `showers-night`, `thunder-rain`, `thunder-showers-day`, `thunder-showers-night`, `snow`, `snow-showers-day`, `snow-showers-night`, `sleet`, `fog`, `wind`, `overcast`. Need more export data from different climates/seasons to verify the full set of possible values and ensure no conditions are missed. Unknown conditions gracefully fall back to no icon (temperature still shows).
 
 - **Photo lightbox / full-screen viewer**: tap a photo to view it enlarged with swipe navigation
 - **Map view**: plot chapters on a world map using GPS coordinates, import `locations.json` track data

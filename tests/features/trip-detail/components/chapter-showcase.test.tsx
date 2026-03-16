@@ -15,41 +15,42 @@ vi.mock("@/stores/photo-storage", () => ({
 // Mock framer-motion
 vi.mock("framer-motion", async () => {
   const actual = await vi.importActual("framer-motion")
+
+  function makeElement(Tag: string) {
+    return ({
+      children,
+      className,
+      onClick,
+      style,
+      dir,
+      ...rest
+    }: Record<string, unknown> & { children?: React.ReactNode }) => {
+      const props: Record<string, unknown> = {}
+      if (className) props.className = className
+      if (onClick) props.onClick = onClick
+      if (style) props.style = style
+      if (dir) props.dir = dir
+      if (rest.role) props.role = rest.role
+      if (rest["aria-label"]) props["aria-label"] = rest["aria-label"]
+      if (rest["aria-roledescription"]) props["aria-roledescription"] = rest["aria-roledescription"]
+      if (rest["aria-hidden"]) props["aria-hidden"] = rest["aria-hidden"]
+      if (rest.tabIndex != null) props.tabIndex = rest.tabIndex
+      if (Tag === "button") props.type = "button"
+      // @ts-expect-error dynamic element
+      return <Tag {...props}>{children}</Tag>
+    }
+  }
+
   return {
     ...actual,
     AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
     useReducedMotion: () => false,
+    useInView: () => true,
     motion: {
-      div: ({
-        children,
-        className,
-        ...rest
-      }: Record<string, unknown> & { children?: React.ReactNode }) => (
-        <div
-          className={className as string}
-          role={rest.role as string}
-          aria-label={rest["aria-label"] as string}
-          aria-roledescription={rest["aria-roledescription"] as string}
-          tabIndex={rest.tabIndex as number}
-        >
-          {children}
-        </div>
-      ),
-      button: ({
-        children,
-        className,
-        onClick,
-        ...rest
-      }: Record<string, unknown> & { children?: React.ReactNode }) => (
-        <button
-          className={className as string}
-          onClick={onClick as React.MouseEventHandler}
-          type="button"
-          aria-label={rest["aria-label"] as string}
-        >
-          {children}
-        </button>
-      ),
+      div: makeElement("div"),
+      button: makeElement("button"),
+      p: makeElement("p"),
+      path: makeElement("path"),
     },
   }
 })

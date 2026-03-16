@@ -16,7 +16,7 @@ The redesign is too large for a single spec. It splits into three phases, each s
 |---|---|---|
 | **P1 — Chapter Showcase** ✅ | Full-bleed chapter sections, photo grids, postcard layout, photo lightbox, sticky chapter nav | None |
 | **P2 — Globe** ✅ | 280px interactive globe with compass rose frame, scroll-synced rotation, expanded map overlay, route arcs, chapter pins | `maplibre-gl`, `@vis.gl/react-maplibre`, `pmtiles`, `@protomaps/basemaps` |
-| **P3 — Motion & Atmosphere** | Paper-unfold entrance, parallax depth layers, crossfade transitions, weather-driven ambient color, hand-drawn route line, scroll-to-top button | None |
+| **P3 — Motion & Atmosphere** ✅ | Paper-unfold entrance, chapter entrance animations, hand-drawn route line, scroll-to-top button, weather icons | None |
 
 Each phase has its own section below. A phase builds on the previous one but does not break the page if shipped alone.
 
@@ -83,7 +83,7 @@ Each chapter renders as a distinct full-width section with clear visual separati
    - Chapter display name (h2, large, serif/display font)
    - Location detail (smaller, muted)
    - Date or date range (smaller, muted)
-   - Weather condition + temperature if available (smaller, muted, inline with date)
+   - Weather icon + temperature if available (Lucide icon mapped from condition string, smaller, muted, inline with date)
    - Country flag emoji before the location name
    All within the content column (`max-w-[720px]`, centered, with `px-4 md:px-8`).
 
@@ -255,72 +255,48 @@ The overlay is an **exploration-first** tool. Clicking a pin selects it for prev
 
 ## P3 — Motion & Atmosphere
 
-### Paper-Unfold Entrance
+### Weather Icons ✅
+
+Replace raw weather condition text (e.g., "Partly Cloudy") with Lucide icons mapped from the condition string. The icon appears inline next to the temperature in the chapter metadata bar. A `getWeatherIcon` utility in `trip-detail/lib/weather-icon.ts` maps lowercase condition strings to Lucide icons (`Sun`, `CloudSun`, `Cloud`, `CloudRain`, `CloudLightning`, `Snowflake`, `CloudFog`, `Wind`, `CloudDrizzle`). Unknown conditions render temperature only (no icon). The icon has `aria-label` set to the original condition string for accessibility.
+
+### Paper-Unfold Entrance ✅
 
 When the trip detail page first loads (after data is ready), instead of a simple fade-in, the content "unfolds" like a paper map being opened.
 
 **The animation:**
 
-1. The entire content area starts as a narrow vertical strip (scaleX: 0.05, full height) centered on screen, with a parchment-like background color.
-2. It unfolds horizontally (scaleX animates to 1) over 600ms with an ease-out curve.
-3. As it unfolds, the content fades in from 0 to 1 opacity (starting at 300ms, so the unfold is half-done before content appears).
-4. A subtle paper-crease shadow runs down the center during the fold, fading as it opens.
+1. The entire content area starts clipped to a narrow vertical strip (`clipPath: inset(0 49.5% 0 49.5%)`) centered on screen — no layout distortion since clip-path doesn't affect sizing.
+2. It reveals horizontally (`clipPath` animates to `inset(0 0% 0 0%)`) over 600ms with an ease-out curve.
+3. As it reveals, the content fades in from 0 to 1 opacity (starting at 150ms, so the reveal is underway before content appears).
 
 **Constraints:**
 - Only plays on initial page load, not on back-navigation or re-renders.
 - Skipped entirely if `prefers-reduced-motion` is set (content just fades in normally).
 - Uses Framer Motion's `animate` with `useReducedMotion`.
 
-### Depth Layers & Crossfade
+### Chapter Entrance Animations ✅
 
-Each chapter section uses layered scroll effects to create depth and a sense of progression. Since photo ordering is not deterministic (no timestamps or meaningful filenames), there is no designated "hero photo" per chapter — this is consistent with P1's equal-treatment postcard model.
+Each chapter section uses entrance effects to create depth and a sense of progression as the user scrolls.
 
-**Background layer — ambient crossfade:**
+**Content entrance** (metadata, description): a subtle `translateY` entrance (20px → 0, opacity 0 → 1) triggers as each chapter scrolls into view, giving a gentle "rising into place" effect. Driven by Framer Motion `useInView` with `once: true`.
 
-- Each chapter section has a full-width ambient background (driven by the weather tint from "Weather-Driven Ambient Color" above, or the default vault background if no weather data).
-- As the user scrolls from one chapter to the next, the outgoing chapter's ambient tint crossfades into the incoming chapter's tint over ~100px of overlap in the divider space. This creates a dissolve transition between chapters rather than a hard cut.
-- The crossfade is driven by `useScroll` + `useTransform`, scoped to the divider region between chapters.
+**Postcard entrance** (photos): postcards enter with a slightly delayed animation relative to the content layer (staggered by ~100ms per row), so they appear to settle onto the page after the text. Same `translateY` + opacity pattern.
 
-**Content layer** (metadata, description): moves at normal 1x scroll speed. A subtle `translateY` entrance (20px → 0, opacity 0 → 1) triggers as each chapter scrolls into view, giving a gentle "rising into place" effect.
+Reduced motion: no entrance animations. Chapters render statically.
 
-**Foreground details** (postcard photos): moves at 1x scroll speed but with a slightly delayed entrance relative to the content layer (staggered by ~100ms per row), so the postcards appear to settle onto the page after the text.
-
-Implementation: Framer Motion `useScroll` + `useTransform` for the ambient crossfade. `useInView` with `once: true` for the content/postcard entrance animations. Each chapter section is its own scroll-tracking container.
-
-Reduced motion: no crossfade, no entrance animations. Chapters are separated by whitespace, content and photos render statically.
-
-### Weather-Driven Ambient Color
-
-A subtle background color shift per chapter, derived from the chapter's weather and time of day.
-
-**Color mapping:**
-
-| Condition | Ambient tint |
-|---|---|
-| Clear / sunny (daytime) | Warm golden — `hsl(38 40% 94%)` |
-| Cloudy / overcast | Cool grey — `hsl(220 10% 92%)` |
-| Rainy / stormy | Slate blue — `hsl(210 15% 88%)` |
-| Snow | Cool white — `hsl(200 20% 95%)` |
-| No weather data | Default vault background — no tint |
-
-The tint is applied as a full-width background gradient behind the chapter section, transitioning smoothly from one chapter's tint to the next over the divider space. The effect is subtle — a barely perceptible warmth or coolness that makes each chapter *feel* different without being distracting.
-
-### Hand-Drawn Route Line
+### Hand-Drawn Route Line ✅
 
 Between chapter sections (in the divider space), a decorative dotted line meanders down the page, connecting one chapter to the next — like a route drawn on a paper map.
 
 **Visual:**
 
-- The line is an SVG path with a hand-drawn aesthetic: slightly wobbly, not perfectly straight. Generated procedurally with small random offsets on control points.
-- Stroke: `vault-gold-dim`, 1.5px, dashed (`stroke-dasharray: 6 4`).
-- The line starts at the bottom-center of one chapter section and ends at the top-center of the next.
-- It curves gently left or right (alternating per chapter pair) to avoid monotony.
+- A simple vertical dashed line (`border-dashed`, 3px, `vault-gold-dim/50`) centered between chapter cards.
+- 32px tall, animates from height 0 to 32px when scrolling into view.
+- Lightweight and clean — connects chapters without visual noise.
 
-**Scroll animation:** the line draws itself as the user scrolls into view, using `stroke-dashoffset` animated by scroll position. By the time the next chapter's hero is visible, the line is fully drawn.
+Reduced motion: the line renders at full height instantly (no animation).
 
-Reduced motion: the line is fully drawn (no animation), rendered as a static decorative element.
-
-### Scroll-to-Top Button
+### Scroll-to-Top Button ✅
 
 A floating button that appears once the user has scrolled past the first chapter section (~2 viewports down).
 
@@ -394,8 +370,8 @@ Every section above specifies its reduced-motion fallback. The general rule: rem
 - **Chapter nav:** floating pill at bottom-center (same as tablet). Tapping opens chapter list.
 - **Globe:** hidden behind a 44px FAB (`bottom-20 right-4`). Tapping opens full-screen expanded overlay.
 - **Lightbox:** swipe-to-navigate, swipe-down-to-close. Full-screen.
-- **Crossfade & entrance animations (P3):** ambient tint crossfade is kept (lightweight). Content/postcard entrance animations are simplified — no stagger, just a single fade-in per chapter section.
-- **Paper-unfold (P3):** simplified to a quick fade-in (200ms) on mobile.
+- **Entrance animations (P3):** content/postcard entrance animations are simplified — no stagger, just a single fade-in per chapter section.
+- **Paper-unfold (P3):** same clip-path reveal on all screen sizes.
 
 ---
 

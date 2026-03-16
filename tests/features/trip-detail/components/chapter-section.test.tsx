@@ -11,6 +11,7 @@ vi.mock("framer-motion", async () => {
     ...actual,
     AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
     useReducedMotion: () => false,
+    useInView: () => true,
   }
 })
 
@@ -141,11 +142,11 @@ describe("ChapterSection", () => {
     expect(screen.queryAllByRole("button")).toHaveLength(0)
   })
 
-  it("renders weather when present", () => {
+  it("renders weather icon and temperature when present", () => {
     render(
       <ChapterSection
         chapter={makeChapter({
-          weatherCondition: "Partly Cloudy",
+          weatherCondition: "partly-cloudy-day",
           weatherTemperature: 31.4,
         })}
         photos={[]}
@@ -153,7 +154,10 @@ describe("ChapterSection", () => {
       />
     )
 
-    expect(screen.getByText(/Partly Cloudy, 31\u00B0C/)).toBeInTheDocument()
+    // Weather icon has aria-label (kebab stripped, day/night removed)
+    expect(screen.getByLabelText("partly cloudy")).toBeInTheDocument()
+    // Temperature rendered separately
+    expect(screen.getByText("31°C")).toBeInTheDocument()
   })
 
   it("includes sentinel div for intersection observer", () => {

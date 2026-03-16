@@ -12,6 +12,7 @@ import { TripGlobe } from "./trip-globe"
 import { TripNotFound } from "./trip-not-found"
 import { TripDetailError } from "./trip-detail-error"
 import { TripDetailSkeleton } from "./trip-detail-skeleton"
+import { ScrollToTopButton } from "./scroll-to-top-button"
 
 interface TripDetailPageProps {
   slug: string
@@ -80,6 +81,34 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
         transition: { duration: 0.25, ease: [0.45, 0, 0.55, 1] as const },
       }
 
+  // Paper-unfold entrance via clip-path: reveals content from a narrow
+  // vertical strip outward without distorting layout.
+  // Only plays on initial page load, not re-renders.
+  const hasPlayedRef = useRef(false)
+  const shouldUnfold = status === "success" && !hasPlayedRef.current && !prefersReducedMotion
+  useEffect(() => {
+    if (status === "success") {
+      hasPlayedRef.current = true
+    }
+  }, [status])
+
+  const unfoldProps = shouldUnfold
+    ? {
+        initial: {
+          clipPath: "inset(0 49.5% 0 49.5%)",
+          opacity: 0,
+        } as const,
+        animate: {
+          clipPath: "inset(0 0% 0 0%)",
+          opacity: 1,
+        } as const,
+        transition: {
+          clipPath: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+          opacity: { duration: 0.3, delay: 0.15, ease: "easeOut" },
+        },
+      }
+    : motionProps
+
   return (
     <div ref={containerRef} aria-live="polite">
       {/* Skip to content link */}
@@ -107,7 +136,7 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
       )}
 
       {status === "success" && trip && chapters && (
-        <motion.div {...motionProps}>
+        <motion.div {...unfoldProps}>
           {hasCover && (
             <HeroCover
               coverPhotoUrl={coverPhotoUrl ?? null}
@@ -132,6 +161,7 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
             visible={globeVisible}
             onNavigate={handleGlobeNavigate}
           />
+          <ScrollToTopButton prefersReducedMotion={prefersReducedMotion} />
         </motion.div>
       )}
     </div>

@@ -9,6 +9,7 @@ import { useChapterPhotos } from "../lib/use-chapter-photos"
 import { ChapterSection } from "./chapter-section"
 import { ChapterNavSidebar } from "./chapter-nav-sidebar"
 import { ChapterNavPill } from "./chapter-nav-pill"
+import { RouteLine } from "./route-line"
 
 /** Fraction of viewport height excluded from the top of the observer hot zone. */
 const ACTIVE_ZONE_TOP_INSET = 0.02
@@ -242,16 +243,18 @@ export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexC
       />
 
       <div ref={showcaseRef}>
-        {chapters.map((chapter) => (
-          <ChapterWithPhotos
-            key={chapter.id}
-            chapter={chapter}
-            photoCount={photoCountsByChapter.get(chapter.id) ?? 0}
-            shouldLoad={loadableChapters.has(chapter.id)}
-            shouldEvict={evictableChapters.has(chapter.id)}
-            isPinned={pinnedChapterId === chapter.id}
-            onLightboxChange={handleLightboxChange}
-          />
+        {chapters.map((chapter, index) => (
+          <div key={chapter.id}>
+            {index > 0 && <RouteLine />}
+            <ChapterWithPhotos
+              chapter={chapter}
+              photoCount={photoCountsByChapter.get(chapter.id) ?? 0}
+              shouldLoad={loadableChapters.has(chapter.id)}
+              shouldEvict={evictableChapters.has(chapter.id)}
+              isPinned={pinnedChapterId === chapter.id}
+              onLightboxChange={handleLightboxChange}
+            />
+          </div>
         ))}
       </div>
     </>

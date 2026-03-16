@@ -17,43 +17,41 @@ vi.mock("@/stores/photo-storage", () => ({
 }))
 
 // Mock framer-motion to render plain elements
-vi.mock("framer-motion", () => ({
-  motion: {
-    div: ({
-      children,
-      initial: _initial,
-      animate: _animate,
-      transition: _transition,
-      ...rest
-    }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => (
-      <div {...rest}>{children}</div>
-    ),
-    img: (props: React.ImgHTMLAttributes<HTMLImageElement> & Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        ...rest
-      } = props
-      return <img {...rest} />
+vi.mock("framer-motion", () => {
+  // Strip motion-specific props and render the base HTML element
+  function makeElement(Tag: string) {
+    return ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) => {
+      const htmlProps: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(props)) {
+        // Skip framer-motion-only props
+        if (
+          ["initial", "animate", "exit", "transition", "variants",
+           "whileHover", "whileInView", "whileTap", "layoutId",
+           "onAnimationComplete"].includes(k)
+        ) continue
+        htmlProps[k] = v
+      }
+      if (Tag === "button" && !htmlProps.type) htmlProps.type = "button"
+      // @ts-expect-error dynamic element
+      return <Tag {...htmlProps}>{children}</Tag>
+    }
+  }
+
+  return {
+    motion: {
+      div: makeElement("div"),
+      img: makeElement("img"),
+      button: makeElement("button"),
+      p: makeElement("p"),
+      path: makeElement("path"),
     },
-    button: ({
-      children,
-      initial: _initial,
-      animate: _animate,
-      transition: _transition,
-      whileHover: _whileHover,
-      layoutId: _layoutId,
-      ...rest
-    }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => (
-      <button {...rest}>{children}</button>
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
     ),
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-  useReducedMotion: () => false,
-}))
+    useReducedMotion: () => false,
+    useInView: () => true,
+  }
+})
 
 // Mock next/link
 vi.mock("next/link", () => ({

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 
 import { useTripDetail } from "../lib/use-trip-detail"
-import { BackButton } from "./back-button"
 import { HeroCover } from "./hero-cover"
 import { TripHeader } from "./trip-header"
 import { ChapterShowcase } from "./chapter-showcase"
@@ -73,7 +72,7 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
 
   const hasCover = Boolean(coverPhotoUrl)
 
-  const motionProps = prefersReducedMotion
+  const fadeProps = prefersReducedMotion
     ? {}
     : {
         initial: { opacity: 0 } as const,
@@ -83,17 +82,10 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
 
   // Paper-unfold entrance via clip-path: reveals content from a narrow
   // vertical strip outward without distorting layout.
-  // Only plays on initial page load, not re-renders.
-  const hasPlayedRef = useRef(false)
-  const shouldUnfold = status === "success" && !hasPlayedRef.current && !prefersReducedMotion
-  useEffect(() => {
-    if (status === "success") {
-      hasPlayedRef.current = true
-    }
-  }, [status])
-
-  const unfoldProps = shouldUnfold
-    ? {
+  // `initial` only applies on mount, so re-renders won't replay it.
+  const unfoldProps = prefersReducedMotion
+    ? {}
+    : {
         initial: {
           clipPath: "inset(0 49.5% 0 49.5%)",
           opacity: 0,
@@ -107,7 +99,6 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
           opacity: { duration: 0.3, delay: 0.15, ease: "easeOut" },
         },
       }
-    : motionProps
 
   return (
     <div ref={containerRef} aria-live="polite">
@@ -119,18 +110,16 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
         Skip to content
       </a>
 
-      <BackButton hasCover={status === "success" && hasCover} />
-
       {status === "loading" && <TripDetailSkeleton />}
 
       {status === "not-found" && (
-        <motion.div {...motionProps}>
+        <motion.div {...fadeProps}>
           <TripNotFound />
         </motion.div>
       )}
 
       {status === "error" && (
-        <motion.div {...motionProps}>
+        <motion.div {...fadeProps}>
           <TripDetailError onRetry={retry} />
         </motion.div>
       )}

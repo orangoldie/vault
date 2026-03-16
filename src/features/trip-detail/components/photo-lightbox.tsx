@@ -128,7 +128,8 @@ export function PhotoLightbox({
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [onClose, goNext, goPrev])
 
-  // Lock body scroll — compensate for scrollbar width to prevent page shift
+  // Lock body scroll — compensate for scrollbar width to prevent page shift.
+  // Sets a CSS custom property so fixed-position elements can also compensate.
   useEffect(() => {
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
     const originalOverflow = document.body.style.overflow
@@ -136,10 +137,12 @@ export function PhotoLightbox({
     document.body.style.overflow = "hidden"
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`
+      document.documentElement.style.setProperty("--scrollbar-width", `${scrollbarWidth}px`)
     }
     return () => {
       document.body.style.overflow = originalOverflow
       document.body.style.paddingRight = originalPaddingRight
+      document.documentElement.style.setProperty("--scrollbar-width", "0px")
     }
   }, [])
 
@@ -190,7 +193,8 @@ export function PhotoLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close photo viewer"
-        className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white/80 transition-colors hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className="absolute top-4 z-10 rounded-full bg-white/10 p-2 text-white/80 transition-colors hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
       >
         <X className="size-5" />
       </button>
@@ -217,9 +221,10 @@ export function PhotoLightbox({
           onClick={goNext}
           aria-label="Next photo"
           className={cn(
-            "absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white/80 transition-all hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
+            "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white/80 transition-all hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
           )}
+          style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
         >
           <ChevronRight className="size-6" />
         </button>

@@ -38,7 +38,8 @@ export function ScrollToTopButton({ prefersReducedMotion }: ScrollToTopButtonPro
           onClick={scrollToTop}
           type="button"
           aria-label="Scroll to top"
-          className="fixed bottom-32 right-4 z-30 flex size-10 items-center justify-center rounded-full bg-vault-surface text-vault-gold shadow-md ring-1 ring-vault-gold/20 transition-colors hover:bg-vault-gold hover:text-white lg:bottom-6"
+          className="fixed bottom-32 z-30 flex size-10 items-center justify-center rounded-full bg-vault-surface text-vault-gold shadow-md ring-1 ring-vault-gold/20 transition-colors hover:bg-vault-gold hover:text-white lg:bottom-6"
+          style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
         >
           <ChevronUp className="size-5" />
         </motion.button>

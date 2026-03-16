@@ -177,7 +177,8 @@ export function TripGlobe({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="fixed right-4 top-1/2 z-30 hidden -translate-y-1/2 lg:block"
+            className="fixed top-1/2 z-30 hidden -translate-y-1/2 lg:block"
+            style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
           >
             <div
               className="group relative"
@@ -278,10 +279,11 @@ export function TripGlobe({
             transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
             onClick={handleExpand}
             className={cn(
-              "fixed bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg lg:hidden",
+              "fixed bottom-20 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg lg:hidden",
               "bg-vault-surface text-vault-gold ring-1 ring-vault-gold/20",
               "transition-colors hover:bg-vault-gold hover:text-white"
             )}
+            style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
             aria-label="View trip on globe"
           >
             <GlobeIcon className="h-5 w-5" />

@@ -1,27 +1,31 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { TRIP_SUMMARY_ID } from "../lib/constants"
 
 interface HeroCoverProps {
   coverPhotoUrl: string | null
   tripName: string
+  prefersReducedMotion: boolean
 }
 
-export function HeroCover({ coverPhotoUrl, tripName }: HeroCoverProps) {
+export function HeroCover({ coverPhotoUrl, tripName, prefersReducedMotion }: HeroCoverProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageFailed, setImageFailed] = useState(false)
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const imgRef = useRef<HTMLImageElement>(null)
+  const [nearTop, setNearTop] = useState(true)
 
+  // Show scroll hint whenever the user is near the top of the page
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setPrefersReducedMotion(mq.matches)
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
+    function onScroll() {
+      setNearTop(window.scrollY <= 50)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
   // Check if the image is already cached/loaded
@@ -36,48 +40,93 @@ export function HeroCover({ coverPhotoUrl, tripName }: HeroCoverProps) {
   }
 
   return (
-    <div className="relative w-full overflow-hidden">
-      <div className="relative aspect-[16/9] w-full md:max-h-[60vh]">
-        {/* Shimmer placeholder */}
-        {!imageLoaded && (
-          <div
-            className={cn(
-              "absolute inset-0 bg-muted",
-              !prefersReducedMotion && "animate-pulse"
-            )}
-          />
-        )}
-
-        <motion.img
-          ref={imgRef}
-          src={coverPhotoUrl}
-          alt={`Cover photo for ${tripName}`}
+    <div className="sticky top-0 z-0 h-screen w-full overflow-hidden">
+      {/* Shimmer placeholder */}
+      {!imageLoaded && (
+        <div
           className={cn(
-            "absolute inset-0 h-full w-full object-cover",
-            !imageLoaded && "opacity-0"
+            "absolute inset-0 bg-muted",
+            !prefersReducedMotion && "animate-pulse"
           )}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: imageLoaded ? 1 : 0 }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
-          onLoad={() => setImageLoaded(true)}
-          onError={() => setImageFailed(true)}
         />
+      )}
 
-        {/* Gradient overlay for text legibility */}
-        {imageLoaded && (
-          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
+      <motion.img
+        ref={imgRef}
+        src={coverPhotoUrl}
+        alt={`Cover photo for ${tripName}`}
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover",
+          !imageLoaded && "opacity-0"
         )}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: imageLoaded ? 1 : 0 }}
+        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4 }}
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageFailed(true)}
+      />
 
-        {/* Trip name overlaid on the hero */}
-        {imageLoaded && (
+      {/* Darkening overlay — stronger at bottom for the trip name */}
+      {imageLoaded && (
+        <>
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
+        </>
+      )}
+
+      {/* Trip name centered in viewport */}
+      {imageLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
           <h1
             dir="auto"
-            className="absolute bottom-6 left-6 right-6 text-[1.875rem] font-semibold leading-[1.2] tracking-[-0.02em] text-white md:left-1/2 md:max-w-[720px] md:-translate-x-1/2 md:px-8"
+            className="max-w-[720px] px-6 text-center font-serif text-4xl font-bold leading-[1.1] tracking-[-0.02em] text-white drop-shadow-xl sm:text-5xl md:text-6xl"
           >
             <bdi>{tripName}</bdi>
           </h1>
+        </div>
+      )}
+
+      {/* Scroll hint — fades out once user scrolls, clicks to scroll to summary */}
+      <AnimatePresence>
+        {imageLoaded && nearTop && (
+          <motion.div
+            className="absolute inset-x-0 bottom-8 flex justify-center"
+            initial={prefersReducedMotion ? undefined : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <button
+              onClick={() => {
+                const target = document.getElementById(TRIP_SUMMARY_ID)
+                if (target) {
+                  target.scrollIntoView({
+                    behavior: prefersReducedMotion ? "auto" : "smooth",
+                  })
+                }
+              }}
+              className="flex flex-col items-center gap-1 text-white/70 transition-colors hover:text-white"
+              aria-label="Scroll to trip summary"
+            >
+              {prefersReducedMotion ? (
+                <>
+                  <ChevronDown className="size-6" />
+                  <ChevronDown className="-mt-4 size-6" />
+                </>
+              ) : (
+                <motion.div
+                  className="flex flex-col items-center gap-1"
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ChevronDown className="size-6" />
+                  <ChevronDown className="-mt-4 size-6" />
+                </motion.div>
+              )}
+            </button>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   )
 }

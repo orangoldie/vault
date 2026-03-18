@@ -27,7 +27,7 @@ vi.mock("framer-motion", () => {
         if (
           ["initial", "animate", "exit", "transition", "variants",
            "whileHover", "whileInView", "whileTap", "layoutId",
-           "onAnimationComplete"].includes(k)
+           "onAnimationComplete", "custom"].includes(k)
         ) continue
         htmlProps[k] = v
       }
@@ -42,6 +42,7 @@ vi.mock("framer-motion", () => {
       div: makeElement("div"),
       img: makeElement("img"),
       button: makeElement("button"),
+      span: makeElement("span"),
       p: makeElement("p"),
       path: makeElement("path"),
     },
@@ -52,6 +53,14 @@ vi.mock("framer-motion", () => {
     useInView: () => true,
   }
 })
+
+// Mock tooltip
+vi.mock("@/components/ui/tooltip", () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
 
 // Mock next/link
 vi.mock("next/link", () => ({
@@ -260,7 +269,7 @@ describe("TripDetailPage", () => {
 
     const skipLink = screen.getByText("Skip to content")
     expect(skipLink).toBeInTheDocument()
-    expect(skipLink).toHaveAttribute("href", "#trip-header")
+    expect(skipLink).toHaveAttribute("href", "#trip-summary")
   })
 
   it("renders trip stats in success state", async () => {
@@ -272,10 +281,14 @@ describe("TripDetailPage", () => {
     render(<TripDetailPage slug="test-trip" />)
 
     await waitFor(() => {
-      expect(screen.getByText("5 chapters")).toBeInTheDocument()
-      expect(screen.getByText("42 photos")).toBeInTheDocument()
-      expect(screen.getByText("1,234 km")).toBeInTheDocument()
+      // Stats are rendered as list items with aria-labels
+      expect(screen.getByRole("listitem", { name: /days/ })).toBeInTheDocument()
+      expect(screen.getByRole("listitem", { name: "1,234 km" })).toBeInTheDocument()
+      expect(screen.getByRole("listitem", { name: "42 photos" })).toBeInTheDocument()
     })
+
+    // Chapter count appears in the chapter anchor button
+    expect(screen.getByRole("button", { name: /chapter/ })).toBeInTheDocument()
   })
 
   it("renders without cover photo when readPhoto fails", async () => {

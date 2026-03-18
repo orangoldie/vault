@@ -10,6 +10,8 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 
 - **ChapterNavPill popover doesn't close on scroll**: The scroll listener in `chapter-nav-pill.tsx` is wired up correctly (`useEffect` + `window.addEventListener("scroll", ...)`) but never fires. Console logs confirmed the effect doesn't run, suggesting the component may not be mounting — possibly a caching issue or stale build. Need to inspect the rendered pill element in DevTools to confirm which component is actually rendering. Code: `src/features/trip-detail/components/chapter-nav-pill.tsx` lines 37-45.
 
+- **Duplicate trip slugs**: Multiple trips with the same name (e.g., "A New Adventure") produce identical URL slugs (`/trip/a-new-adventure`), causing routing collisions. Need a uniqueness strategy — e.g., append a short hash or numeric suffix when a slug already exists in IndexedDB (`a-new-adventure-2`, or `a-new-adventure-k7x`).
+
 ## Housekeeping
 
 - **Create a LICENSE file**: Add a project license file that includes third-party attribution for OpenStreetMap (ODbL), Protomaps (BSD-3-Clause), and other open-source dependencies used in the project.
@@ -36,3 +38,4 @@ Ideas, open questions, and future features that don't belong to a specific spec 
 - **Bookmarks**: Allow users to bookmark a specific chapter or position in a trip so they can quickly jump back to it later
 - **Sidebar chapter grouping**: Group chapters in the sticky sidebar nav by country or city. Chapters sharing the same country (or city) would appear under a shared heading/divider, making long trips easier to scan. Useful for trips that revisit the same country or have many chapters in one location
 - **Google Drive backup**: Allow users to save/sync their vault data (trips, photos) to Google Drive for cloud backup and cross-device access
+- **Video trip summary**: Generate a short video recap of a trip — slideshow of photos with transitions, background music, overlaid text (trip name, dates, locations), and optional map animation showing the route

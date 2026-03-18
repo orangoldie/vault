@@ -159,9 +159,14 @@ describe("TripGlobe", () => {
       />
     )
 
-    expect(
-      screen.queryByLabelText("View trip on globe")
-    ).not.toBeInTheDocument()
+    // Desktop globe is visually hidden (opacity-0, pointer-events-none)
+    const expandButton = screen.getByText("Click to expand")
+    expect(expandButton.closest("[class*='opacity-0']")).toBeTruthy()
+
+    // Mobile FAB is removed from the DOM when not visible
+    const allGlobeButtons = screen.queryAllByLabelText("View trip on globe")
+    // Only the desktop button remains (always mounted); mobile FAB is gone
+    expect(allGlobeButtons).toHaveLength(1)
   })
 
   it("renders the compass rose SVG with cardinal labels", () => {

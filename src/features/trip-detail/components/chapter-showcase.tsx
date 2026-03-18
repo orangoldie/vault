@@ -6,6 +6,7 @@ import type { ReactNode } from "react"
 import type { Chapter } from "@/types/trip"
 
 import { useChapterPhotos } from "../lib/use-chapter-photos"
+import { TRIP_SUMMARY_ID } from "../lib/constants"
 import { ChapterSection } from "./chapter-section"
 import { ChapterNavSidebar } from "./chapter-nav-sidebar"
 import { ChapterNavPill } from "./chapter-nav-pill"
@@ -155,6 +156,22 @@ export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexC
     return () => observer.disconnect()
   }, [chapters])
 
+  // Show nav only after the summary section has scrolled out of view
+  useEffect(() => {
+    const summary = document.getElementById(TRIP_SUMMARY_ID)
+    if (!summary) {
+      setNavVisible(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setNavVisible(!entry.isIntersecting),
+      { threshold: 0 }
+    )
+    observer.observe(summary)
+    return () => observer.disconnect()
+  }, [])
+
   // Track which chapters should load photos and which should be evicted.
   // Observes the full <section> elements (not zero-height sentinels) so that
   // scrolling UP into a photo-heavy chapter triggers loading when the bottom
@@ -195,16 +212,6 @@ export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexC
     return () => observer.disconnect()
   }, [chapters])
 
-  // Show/hide nav when user scrolls past the header area
-  useEffect(() => {
-    function handleScroll() {
-      setNavVisible(window.scrollY > 400)
-    }
-    handleScroll()
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
   const handleNavigate = useCallback(
     (index: number) => {
       const sentinel = showcaseRef.current?.querySelector(
@@ -242,7 +249,7 @@ export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexC
         onNavigate={handleNavigate}
       />
 
-      <div ref={showcaseRef}>
+      <div ref={showcaseRef} id="chapter-showcase" className="bg-background pt-4">
         {chapters.map((chapter, index) => (
           <div key={chapter.id}>
             {index > 0 && <RouteLine />}

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 
 import { useTripDetail } from "../lib/use-trip-detail"
+import { TRIP_SUMMARY_ID } from "../lib/constants"
 import { HeroCover } from "./hero-cover"
-import { TripHeader } from "./trip-header"
+import { TripSummary } from "./trip-summary"
 import { ChapterShowcase } from "./chapter-showcase"
 import { TripGlobe } from "./trip-globe"
 import { TripNotFound } from "./trip-not-found"
@@ -20,6 +21,7 @@ interface TripDetailPageProps {
 export function TripDetailPage({ slug }: TripDetailPageProps) {
   const { status, trip, chapters, coverPhotoUrl, photoCountsByChapter, retry } = useTripDetail(slug)
   const containerRef = useRef<HTMLDivElement>(null)
+  const shieldRef = useRef<HTMLDivElement>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [globeActiveIndex, setGlobeActiveIndex] = useState(0)
   const [globeVisible, setGlobeVisible] = useState(false)
@@ -49,15 +51,18 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
     }
   }, [status])
 
-  // Show globe once scrolled past the header
+  // Show globe only after the summary section has scrolled out of view
   useEffect(() => {
-    function handleScroll() {
-      setGlobeVisible(window.scrollY > 400)
-    }
-    handleScroll()
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    const summary = document.getElementById(TRIP_SUMMARY_ID)
+    if (!summary) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setGlobeVisible(!entry.isIntersecting),
+      { threshold: 0 }
+    )
+    observer.observe(summary)
+    return () => observer.disconnect()
+  }, [status])
 
   const handleActiveIndexChange = useCallback((index: number) => {
     setGlobeActiveIndex(index)
@@ -69,6 +74,33 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
     },
     []
   )
+
+  // JS fallback for the hero shield in browsers without scroll-driven animations.
+  // CSS `animation-timeline: scroll()` is preferred (compositor-driven, zero latency);
+  // this listener only runs when CSS support is absent.
+  useEffect(() => {
+    if (!coverPhotoUrl) return
+    if (typeof CSS !== "undefined" && CSS.supports?.("animation-timeline", "scroll()")) return
+
+    const shield = shieldRef.current
+    if (!shield) return
+
+    const FADE_START = 1.2 // start at 120vh scroll
+    const FADE_END = 1.8   // fully opaque at 180vh scroll
+
+    function onScroll() {
+      const vh = window.innerHeight
+      const progress = Math.min(
+        1,
+        Math.max(0, (window.scrollY - vh * FADE_START) / (vh * (FADE_END - FADE_START)))
+      )
+      shield!.style.opacity = String(progress)
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [coverPhotoUrl])
 
   const hasCover = Boolean(coverPhotoUrl)
 
@@ -104,7 +136,7 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
     <div ref={containerRef} aria-live="polite">
       {/* Skip to content link */}
       <a
-        href="#trip-header"
+        href="#trip-summary"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-16 focus:z-40 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
       >
         Skip to content
@@ -125,33 +157,52 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
       )}
 
       {status === "success" && trip && chapters && (
-        <motion.div {...unfoldProps}>
+        <>
           {hasCover && (
-            <HeroCover
-              coverPhotoUrl={coverPhotoUrl ?? null}
-              tripName={trip.name}
-            />
+            <>
+              <HeroCover
+                coverPhotoUrl={coverPhotoUrl ?? null}
+                tripName={trip.name}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+              {/* Hero shield: solid-color layer at z-[1] between the sticky hero (z-0)
+                  and the content wrapper (z-10). Prevents the hero photo from bleeding
+                  through during fast scroll in Firefox/Edge — the compositor can always
+                  paint this trivial element even when complex content tiles lag behind.
+                  Opacity is scroll-driven via CSS (or JS fallback) so the hero remains
+                  fully visible during the summary-card parallax zone. */}
+              <div
+                ref={shieldRef}
+                aria-hidden="true"
+                className="hero-shield pointer-events-none fixed inset-x-0 top-0 z-[1] h-screen bg-background opacity-0"
+              />
+            </>
           )}
 
-          <div className="mx-auto w-full max-w-[720px] px-4 py-8 md:px-8">
-            <TripHeader
-              trip={trip}
-              hasCover={hasCover}
+          {/* Summary + chapters sit above the sticky hero via z-10 */}
+          <motion.div {...unfoldProps} className={hasCover ? "relative z-10" : ""}>
+            <div className="mx-auto w-full max-w-[720px]">
+              <TripSummary
+                trip={trip}
+                chapters={chapters}
+                hasCover={hasCover}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+            </div>
+            <ChapterShowcase
+              chapters={chapters}
+              photoCountsByChapter={photoCountsByChapter ?? new Map()}
+              onActiveIndexChange={handleActiveIndexChange}
             />
-          </div>
-          <ChapterShowcase
-            chapters={chapters}
-            photoCountsByChapter={photoCountsByChapter ?? new Map()}
-            onActiveIndexChange={handleActiveIndexChange}
-          />
-          <TripGlobe
-            chapters={chapters}
-            activeIndex={globeActiveIndex}
-            visible={globeVisible}
-            onNavigate={handleGlobeNavigate}
-          />
+            <TripGlobe
+              chapters={chapters}
+              activeIndex={globeActiveIndex}
+              visible={globeVisible}
+              onNavigate={handleGlobeNavigate}
+            />
+          </motion.div>
           <ScrollToTopButton prefersReducedMotion={prefersReducedMotion} />
-        </motion.div>
+        </>
       )}
     </div>
   )

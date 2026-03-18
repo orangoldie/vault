@@ -175,6 +175,23 @@
   }
 }
 
+/* Hero shield: prevents the sticky hero photo from bleeding through
+   during fast scroll in Firefox/Edge. A fixed solid-color layer at z-[1]
+   (above hero z-0, below content z-10) that fades in via scroll-driven
+   animation — handled entirely by the compositor, zero JS latency. */
+@keyframes hero-shield-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@supports (animation-timeline: scroll()) {
+  .hero-shield {
+    animation: hero-shield-reveal linear both;
+    animation-timeline: scroll();
+    animation-range: 120vh 180vh;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

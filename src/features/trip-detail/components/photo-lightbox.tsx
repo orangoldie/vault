@@ -23,11 +23,9 @@ export function PhotoLightbox({
   onClose,
 }: PhotoLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
-  const [showControls, setShowControls] = useState(true)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const currentPhoto = photos[currentIndex]
   const currentUrl = currentPhoto ? photoUrls.get(currentPhoto.id) : undefined
@@ -56,26 +54,6 @@ export function PhotoLightbox({
       }
     }
   }, [currentIndex, photos, photoUrls, total])
-
-  // Auto-hide controls on desktop after inactivity
-  useEffect(() => {
-    function resetTimer() {
-      setShowControls(true)
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
-      hideTimerRef.current = setTimeout(() => setShowControls(false), 3000)
-    }
-
-    function handleMouseMove() {
-      resetTimer()
-    }
-
-    resetTimer()
-    document.addEventListener("mousemove", handleMouseMove)
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
-    }
-  }, [])
 
   const goNext = useCallback(() => {
     setCurrentIndex((prev) => (prev < total - 1 ? prev + 1 : prev))
@@ -131,18 +109,12 @@ export function PhotoLightbox({
   // Lock body scroll — compensate for scrollbar width to prevent page shift.
   // Sets a CSS custom property so fixed-position elements can also compensate.
   useEffect(() => {
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
     const originalOverflow = document.body.style.overflow
-    const originalPaddingRight = document.body.style.paddingRight
     document.body.style.overflow = "hidden"
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`
-      document.documentElement.style.setProperty("--scrollbar-width", `${scrollbarWidth}px`)
-    }
+    // No paddingRight compensation needed — scrollbar-gutter: stable
+    // on <html> already reserves scrollbar space permanently.
     return () => {
       document.body.style.overflow = originalOverflow
-      document.body.style.paddingRight = originalPaddingRight
-      document.documentElement.style.setProperty("--scrollbar-width", "0px")
     }
   }, [])
 
@@ -194,7 +166,7 @@ export function PhotoLightbox({
         onClick={onClose}
         aria-label="Close photo viewer"
         className="absolute top-4 z-10 rounded-full bg-white/10 p-2 text-white/80 transition-colors hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
+        style={{ right: "1rem" }}
       >
         <X className="size-5" />
       </button>
@@ -224,7 +196,7 @@ export function PhotoLightbox({
             "absolute top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white/80 transition-all hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
             "md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
           )}
-          style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
+          style={{ right: "1rem" }}
         >
           <ChevronRight className="size-6" />
         </button>
@@ -260,13 +232,11 @@ export function PhotoLightbox({
       {/* Context bar — timer-triggered on desktop, always visible on mobile */}
       <div
         className={cn(
-          "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 text-center transition-opacity duration-300",
-          "max-md:opacity-100",
-          showControls ? "md:opacity-100" : "md:opacity-0"
+          "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 text-center"
         )}
       >
         <p className="text-sm text-white/80">
-          {chapterName} — {currentIndex + 1} of {total}
+          <bdi>{chapterName}</bdi> — {currentIndex + 1} of {total}
         </p>
       </div>
     </motion.div>

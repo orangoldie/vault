@@ -10,6 +10,7 @@ interface ScrollToTopButtonProps {
 
 export function ScrollToTopButton({ prefersReducedMotion }: ScrollToTopButtonProps) {
   const [visible, setVisible] = useState(false)
+  const [overlayOpen, setOverlayOpen] = useState(false)
 
   useEffect(() => {
     function handleScroll() {
@@ -18,6 +19,19 @@ export function ScrollToTopButton({ prefersReducedMotion }: ScrollToTopButtonPro
     handleScroll()
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // Hide when a fullscreen overlay (lightbox, globe) is open.
+  // Both overlays set overflow:hidden on body or documentElement.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const bodyHidden = document.body.style.overflow === "hidden"
+      const htmlHidden = document.documentElement.style.overflow === "hidden"
+      setOverlayOpen(bodyHidden || htmlHidden)
+    })
+    observer.observe(document.body, { attributeFilter: ["style"] })
+    observer.observe(document.documentElement, { attributeFilter: ["style"] })
+    return () => observer.disconnect()
   }, [])
 
   function scrollToTop() {
@@ -29,7 +43,7 @@ export function ScrollToTopButton({ prefersReducedMotion }: ScrollToTopButtonPro
 
   return (
     <AnimatePresence>
-      {visible && (
+      {visible && !overlayOpen && (
         <motion.button
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}

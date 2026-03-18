@@ -127,10 +127,19 @@ export function TripGlobe({
     if (visible) {
       map.resize()
       map.triggerRepaint()
+      // Re-center on the active chapter in case it changed while hidden
+      const chapter = chapters[activeIndex]
+      if (chapter) {
+        map.flyTo({
+          center: [chapter.location.lon, chapter.location.lat],
+          zoom: 3.5,
+          duration: prefersReducedMotion ? 0 : 600,
+        })
+      }
     } else {
       map.stop()
     }
-  }, [mapReady, visible])
+  }, [mapReady, visible, activeIndex, chapters, prefersReducedMotion])
 
   const handleLoad = useCallback((e: maplibregl.MapLibreEvent) => {
     const map = e.target
@@ -169,105 +178,103 @@ export function TripGlobe({
 
   return (
     <>
-      {/* Desktop mini globe — bottom-right corner */}
-      <AnimatePresence>
-        {visible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-            className="fixed top-1/2 z-30 hidden -translate-y-1/2 lg:block"
-            style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
-          >
-            <div
-              className="group relative"
-              style={{ width: FRAME_SIZE, height: FRAME_SIZE }}
-            >
-              {/* Compass rose frame */}
-              <CompassRose
-                size={FRAME_SIZE}
-                className="absolute inset-0 transition-opacity group-hover:opacity-100"
-              />
-
-              {/* Globe canvas */}
-              <div
-                className="absolute overflow-hidden rounded-full"
-                style={{
-                  top: GLOBE_OFFSET,
-                  left: GLOBE_OFFSET,
-                  width: GLOBE_SIZE,
-                  height: GLOBE_SIZE,
-                }}
-              >
-                <Map
-                  mapStyle={style}
-                  projection="globe"
-                  style={{ width: GLOBE_SIZE, height: GLOBE_SIZE }}
-                  initialViewState={{
-                    longitude: activeChapter?.location.lon ?? 0,
-                    latitude: activeChapter?.location.lat ?? 20,
-                    zoom: 3,
-                  }}
-                  attributionControl={false}
-                  onLoad={handleLoad}
-                >
-                  <Source id="route" type="geojson" data={routeGeoJson}>
-                    <Layer
-                      id="route-line"
-                      type="line"
-                      layout={{
-                        "line-cap": "round",
-                      }}
-                      paint={{
-                        "line-color": "hsl(32, 70%, 55%)",
-                        "line-width": 2,
-                        "line-opacity": 0.6,
-                        "line-dasharray": [1.5, 2.5],
-                      }}
-                    />
-                  </Source>
-                  {chapters.map((ch, i) => (
-                    <Marker
-                      key={ch.id}
-                      longitude={ch.location.lon}
-                      latitude={ch.location.lat}
-                    >
-                      <button
-                        onClick={() => handleMarkerClick(i)}
-                        aria-label={`Go to ${ch.displayName}`}
-                        className={cn(
-                          "cursor-pointer rounded-full transition-all duration-300",
-                          i === activeIndex
-                            ? "h-3.5 w-3.5 shadow-[0_0_8px_hsl(32,70%,55%),0_0_18px_hsl(32,70%,55%)] animate-[pulse-glow_2s_ease-in-out_infinite]"
-                            : "h-2 w-2 hover:h-3 hover:w-3"
-                        )}
-                        style={{
-                          backgroundColor: "hsl(32, 70%, 55%)",
-                        }}
-                      />
-                    </Marker>
-                  ))}
-                </Map>
-              </div>
-
-              {/* Expand button */}
-              <button
-                onClick={handleExpand}
-                aria-label="View trip on globe"
-                className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 cursor-pointer rounded-full bg-vault-surface/90 px-2.5 py-0.5 text-[10px] font-medium text-vault-text-dim shadow-sm backdrop-blur-sm transition-all hover:bg-vault-surface hover:text-vault-text opacity-0 group-hover:opacity-100"
-              >
-                Click to expand
-              </button>
-
-              {/* OSM attribution */}
-              <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] text-vault-text-dim/50">
-                © <a href="https://openstreetmap.org" target="_blank" rel="noopener noreferrer" className="hover:text-vault-text-dim">OpenStreetMap</a>
-              </div>
-            </div>
-          </motion.div>
+      {/* Desktop mini globe — bottom-right corner, always mounted to preserve map state */}
+      <div
+        className={cn(
+          "fixed top-1/2 z-30 hidden -translate-y-1/2 transition-all lg:block",
+          prefersReducedMotion ? "duration-0" : "duration-300",
+          visible
+            ? "pointer-events-auto scale-100 opacity-100"
+            : "pointer-events-none scale-[0.8] opacity-0"
         )}
-      </AnimatePresence>
+        style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
+      >
+        <div
+          className="group relative"
+          style={{ width: FRAME_SIZE, height: FRAME_SIZE }}
+        >
+          {/* Compass rose frame */}
+          <CompassRose
+            size={FRAME_SIZE}
+            className="absolute inset-0 transition-opacity group-hover:opacity-100"
+          />
+
+          {/* Globe canvas */}
+          <div
+            className="absolute overflow-hidden rounded-full"
+            style={{
+              top: GLOBE_OFFSET,
+              left: GLOBE_OFFSET,
+              width: GLOBE_SIZE,
+              height: GLOBE_SIZE,
+            }}
+          >
+            <Map
+              mapStyle={style}
+              projection="globe"
+              style={{ width: GLOBE_SIZE, height: GLOBE_SIZE }}
+              initialViewState={{
+                longitude: activeChapter?.location.lon ?? 0,
+                latitude: activeChapter?.location.lat ?? 20,
+                zoom: 3,
+              }}
+              attributionControl={false}
+              onLoad={handleLoad}
+            >
+              <Source id="route" type="geojson" data={routeGeoJson}>
+                <Layer
+                  id="route-line"
+                  type="line"
+                  layout={{
+                    "line-cap": "round",
+                  }}
+                  paint={{
+                    "line-color": "hsl(32, 70%, 55%)",
+                    "line-width": 2,
+                    "line-opacity": 0.6,
+                    "line-dasharray": [1.5, 2.5],
+                  }}
+                />
+              </Source>
+              {chapters.map((ch, i) => (
+                <Marker
+                  key={ch.id}
+                  longitude={ch.location.lon}
+                  latitude={ch.location.lat}
+                >
+                  <button
+                    onClick={() => handleMarkerClick(i)}
+                    aria-label={`Go to ${ch.displayName}`}
+                    className={cn(
+                      "cursor-pointer rounded-full transition-all duration-300",
+                      i === activeIndex
+                        ? "h-3.5 w-3.5 shadow-[0_0_8px_hsl(32,70%,55%),0_0_18px_hsl(32,70%,55%)] animate-[pulse-glow_2s_ease-in-out_infinite]"
+                        : "h-2 w-2 hover:h-3 hover:w-3"
+                    )}
+                    style={{
+                      backgroundColor: "hsl(32, 70%, 55%)",
+                    }}
+                  />
+                </Marker>
+              ))}
+            </Map>
+          </div>
+
+          {/* Expand button */}
+          <button
+            onClick={handleExpand}
+            aria-label="View trip on globe"
+            className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 cursor-pointer rounded-full bg-vault-surface/90 px-2.5 py-0.5 text-[10px] font-medium text-vault-text-dim shadow-sm backdrop-blur-sm transition-all hover:bg-vault-surface hover:text-vault-text opacity-0 group-hover:opacity-100"
+          >
+            Click to expand
+          </button>
+
+          {/* OSM attribution */}
+          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] text-vault-text-dim/50">
+            © <a href="https://openstreetmap.org" target="_blank" rel="noopener noreferrer" className="hover:text-vault-text-dim">OpenStreetMap</a>
+          </div>
+        </div>
+      </div>
 
       {/* Mobile FAB — visible on small screens */}
       <AnimatePresence>

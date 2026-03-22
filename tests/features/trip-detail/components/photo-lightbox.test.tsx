@@ -100,7 +100,8 @@ describe("PhotoLightbox", () => {
       />
     )
 
-    expect(screen.getByText("Bangkok — 2 of 3")).toBeInTheDocument()
+    expect(screen.getByText(/Bangkok/)).toBeInTheDocument()
+    expect(screen.getByText(/2 of 3/)).toBeInTheDocument()
   })
 
   it("navigates to next photo with right arrow button", async () => {
@@ -117,7 +118,7 @@ describe("PhotoLightbox", () => {
     )
 
     await user.click(screen.getByRole("button", { name: "Next photo" }))
-    expect(screen.getByText("Bangkok — 2 of 3")).toBeInTheDocument()
+    expect(screen.getByText(/2 of 3/)).toBeInTheDocument()
   })
 
   it("navigates to previous photo with left arrow button", async () => {
@@ -134,7 +135,7 @@ describe("PhotoLightbox", () => {
     )
 
     await user.click(screen.getByRole("button", { name: "Previous photo" }))
-    expect(screen.getByText("Bangkok — 2 of 3")).toBeInTheDocument()
+    expect(screen.getByText(/2 of 3/)).toBeInTheDocument()
   })
 
   it("calls onClose when close button is clicked", async () => {

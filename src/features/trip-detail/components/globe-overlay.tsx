@@ -8,6 +8,8 @@ import { Protocol } from "pmtiles"
 import { Map, Marker, Source, Layer } from "@vis.gl/react-maplibre"
 import "maplibre-gl/dist/maplibre-gl.css"
 
+import { useOverlay } from "../lib/overlay-context"
+
 import type { Chapter } from "@/types/trip"
 import { cn } from "@/lib/utils"
 
@@ -27,6 +29,8 @@ interface GlobeOverlayProps {
   activeIndex: number
   onNavigate: (index: number) => void
   onClose: () => void
+  /** Override the default globe map style (used by the export viewer). */
+  mapStyle?: maplibregl.StyleSpecification
 }
 
 const NAVIGATE_SCROLL_INSET = 0.03
@@ -50,6 +54,7 @@ export function GlobeOverlay({
   activeIndex,
   onNavigate,
   onClose,
+  mapStyle: mapStyleOverride,
 }: GlobeOverlayProps) {
   const mapRef = useRef<maplibregl.Map | null>(null)
   const [mapReady, setMapReady] = useState(false)
@@ -68,13 +73,16 @@ export function GlobeOverlay({
     return () => document.removeEventListener("keydown", handleKey)
   }, [onClose])
 
-  // Lock body scroll
+  // Lock body scroll and signal overlay active
+  const overlay = useOverlay("globe")
   useEffect(() => {
     document.documentElement.style.overflow = "hidden"
+    overlay.acquire()
     return () => {
       document.documentElement.style.overflow = ""
+      overlay.release()
     }
-  }, [])
+  }, [overlay])
 
   // Fly to active chapter when overlay opens
   useEffect(() => {
@@ -102,7 +110,10 @@ export function GlobeOverlay({
     }
   }, [mapReady, selectedIndex, chapters])
 
-  const style = useMemo(() => createGlobeStyle("vault"), [])
+  const style = useMemo(
+    () => mapStyleOverride ?? createGlobeStyle("vault"),
+    [mapStyleOverride]
+  )
 
   const routeGeoJson = useMemo(
     () => ({

@@ -29,6 +29,8 @@ interface TripGlobeProps {
   activeIndex: number
   visible: boolean
   onNavigate: (index: number) => void
+  /** Override the default globe map style (used by the export viewer). */
+  mapStyle?: maplibregl.StyleSpecification
 }
 
 const GLOBE_SIZE = 280
@@ -40,6 +42,7 @@ export function TripGlobe({
   activeIndex,
   visible,
   onNavigate,
+  mapStyle: mapStyleOverride,
 }: TripGlobeProps) {
   const mapRef = useRef<maplibregl.Map | null>(null)
   const userDragged = useRef(false)
@@ -60,7 +63,10 @@ export function TripGlobe({
     return () => mq.removeEventListener("change", handler)
   }, [])
 
-  const style = useMemo(() => createGlobeStyle("vault"), [])
+  const style = useMemo(
+    () => mapStyleOverride ?? createGlobeStyle("vault"),
+    [mapStyleOverride]
+  )
 
   const routeGeoJson = useMemo(
     () => ({
@@ -305,6 +311,7 @@ export function TripGlobe({
           activeIndex={activeIndex}
           onNavigate={onNavigate}
           onClose={handleClose}
+          mapStyle={mapStyleOverride}
         />
       )}
     </>

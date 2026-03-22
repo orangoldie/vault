@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 
-import { getPhotosByChapter } from "@/stores/db"
-import { readPhoto } from "@/stores/photo-storage"
 import type { Photo } from "@/types/trip"
+
+import { usePhotoSource } from "./photo-source-context"
 
 type ChapterPhotosStatus = "idle" | "loading" | "success" | "error"
 
@@ -19,6 +19,7 @@ const MAX_RETRIES = 2
 const RETRY_DELAY_MS = 200
 
 export function useChapterPhotos(chapterId: number) {
+  const source = usePhotoSource()
   const [state, setState] = useState<ChapterPhotosState>({
     photos: [],
     photoUrls: new Map(),
@@ -32,7 +33,7 @@ export function useChapterPhotos(chapterId: number) {
     setState((prev) => ({ ...prev, status: "loading" }))
 
     try {
-      const photos = await getPhotosByChapter(chapterId)
+      const photos = await source.getPhotos(chapterId)
       if (abortRef.current) return
 
       const urls = new Map<string, string>()
@@ -45,9 +46,8 @@ export function useChapterPhotos(chapterId: number) {
           for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             if (abortRef.current) return
             try {
-              const blob = await readPhoto(photo.tripId, photo.chapterId, photo.filename)
-              if (blob && !abortRef.current) {
-                const url = URL.createObjectURL(blob)
+              const url = await source.resolveUrl(photo)
+              if (url && !abortRef.current) {
                 urls.set(photo.id, url)
                 urlsRef.current.set(photo.id, url)
               }
@@ -81,17 +81,17 @@ export function useChapterPhotos(chapterId: number) {
         setState((prev) => ({ ...prev, status: "error" }))
       }
     }
-  }, [chapterId])
+  }, [chapterId, source])
 
   const revoke = useCallback(() => {
     for (const url of urlsRef.current.values()) {
-      URL.revokeObjectURL(url)
+      source.revokeUrl(url)
     }
     urlsRef.current.clear()
     // Clear URLs but keep photos so the grid skeleton stays at the correct height.
     // Reset status to idle so blobs reload when the chapter re-enters the viewport.
     setState((prev) => ({ ...prev, photoUrls: new Map(), status: "idle" }))
-  }, [])
+  }, [source])
 
   // Clean up on unmount
   useEffect(() => {

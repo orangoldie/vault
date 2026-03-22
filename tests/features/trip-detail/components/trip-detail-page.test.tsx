@@ -263,13 +263,17 @@ describe("TripDetailPage", () => {
     expect(container).toHaveAttribute("aria-live", "polite")
   })
 
-  it("renders a skip-to-content link", () => {
-    mockGetTripBySlug.mockReturnValue(new Promise(() => {}))
+  it("renders a skip-to-content link", async () => {
+    mockGetTripBySlug.mockResolvedValue(makeTripFixture())
+    mockGetChaptersByTrip.mockResolvedValue([makeChapterFixture()])
+
     render(<TripDetailPage slug="test-trip" />)
 
-    const skipLink = screen.getByText("Skip to content")
-    expect(skipLink).toBeInTheDocument()
-    expect(skipLink).toHaveAttribute("href", "#trip-summary")
+    await waitFor(() => {
+      const skipLink = screen.getByText("Skip to content")
+      expect(skipLink).toBeInTheDocument()
+      expect(skipLink).toHaveAttribute("href", "#trip-summary")
+    })
   })
 
   it("renders trip stats in success state", async () => {

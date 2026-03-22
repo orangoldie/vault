@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Photo } from "@/types/trip"
 
+import { useOverlay } from "../lib/overlay-context"
+
 interface PhotoLightboxProps {
   photos: Photo[]
   photoUrls: Map<string, string>
@@ -106,17 +108,17 @@ export function PhotoLightbox({
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [onClose, goNext, goPrev])
 
-  // Lock body scroll — compensate for scrollbar width to prevent page shift.
-  // Sets a CSS custom property so fixed-position elements can also compensate.
+  // Lock body scroll and signal overlay active
+  const overlay = useOverlay("lightbox")
   useEffect(() => {
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    // No paddingRight compensation needed — scrollbar-gutter: stable
-    // on <html> already reserves scrollbar space permanently.
+    overlay.acquire()
     return () => {
       document.body.style.overflow = originalOverflow
+      overlay.release()
     }
-  }, [])
+  }, [overlay])
 
   // Touch handling for swipe navigation
   function handleTouchStart(e: React.TouchEvent) {

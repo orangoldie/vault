@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 
-import { buildHtml } from "@/features/export/lib/build-html"
+import { buildHtml } from "@/features/export-web/lib/build-html"
 import type { Trip, Chapter, Photo } from "@/types/trip"
 
 function makeTripFixture(overrides: Partial<Trip> = {}): Trip {

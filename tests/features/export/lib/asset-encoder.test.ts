@@ -7,7 +7,7 @@ import {
   buildFontScript,
   buildSpriteScript,
   buildWorkerScript,
-} from "@/features/export/lib/asset-encoder"
+} from "@/features/export-web/lib/asset-encoder"
 
 describe("asset-encoder", () => {
   describe("encodeUtf8", () => {

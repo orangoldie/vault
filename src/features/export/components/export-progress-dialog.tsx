@@ -7,11 +7,11 @@ import { CheckCircle2, AlertCircle, X } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { useOverlay } from "@/features/trip-detail/lib/overlay-context"
-import type { ExportProgress } from "../lib/export-trip"
+import type { UnifiedExportProgress } from "../lib/use-export-trip"
 
 interface ExportProgressDialogProps {
   open: boolean
-  progress: ExportProgress | null
+  progress: UnifiedExportProgress | null
   onClose: () => void
   onCancel: () => void
   onRetry: () => void
@@ -33,7 +33,10 @@ export function ExportProgressDialog({
 }: ExportProgressDialogProps) {
   const phase = progress?.phase ?? "preparing"
   const isProcessing =
-    phase === "preparing" || phase === "map-assets" || phase === "archiving"
+    phase === "preparing" ||
+    phase === "map-assets" ||
+    phase === "archiving" ||
+    phase === "composing"
   const isComplete = phase === "complete"
   const isError = phase === "error"
 
@@ -67,18 +70,21 @@ export function ExportProgressDialog({
     return () => document.removeEventListener("keydown", handleKey)
   }, [open, isProcessing, onCancel, onClose])
 
-  // Unified progress bar: map assets = 0–5%, photos = 5–100%
-  const MAP_WEIGHT = 5
-  const progressPercent =
-    phase === "preparing"
-      ? 0
-      : phase === "map-assets"
-        ? MAP_WEIGHT
-        : phase === "archiving" && progress && progress.total > 0
-          ? MAP_WEIGHT + Math.round((progress.current / progress.total) * (100 - MAP_WEIGHT))
-          : phase === "complete"
-            ? 100
-            : 0
+  // Unified progress bar
+  // ZIP export: preparing=0, map-assets=5%, archiving=5–100%
+  // PDF export: preparing=0, composing=50% (indeterminate)
+  const progressPercent = (() => {
+    if (phase === "complete") return 100
+    if (phase === "preparing") return 0
+    // ZIP phases
+    if (phase === "map-assets") return 5
+    if (phase === "archiving" && progress && progress.total > 0) {
+      return 5 + Math.round((progress.current / progress.total) * 95)
+    }
+    // PDF phases
+    if (phase === "composing") return 50
+    return 0
+  })()
 
   return (
     <AnimatePresence>
@@ -151,6 +157,7 @@ export function ExportProgressDialog({
                     {phase === "archiving" &&
                       progress &&
                       `Exporting photos... (${progress.current} / ${progress.total})`}
+                    {phase === "composing" && "Composing album..."}
                   </p>
                 </>
               )}
@@ -165,17 +172,21 @@ export function ExportProgressDialog({
                     </p>
                   )}
                   <p className="text-center text-sm text-muted-foreground">
-                    Unzip the file and open index.html in your browser to view your
-                    trip offline.
+                    {"skippedPhotos" in progress
+                      ? "Unzip the file and open index.html in your browser to view your trip offline."
+                      : "Your travel album is ready."}
                   </p>
-                  {progress.skippedPhotos && progress.skippedPhotos.length > 0 && (
-                    <p className="text-center text-sm text-warning">
-                      {progress.skippedPhotos.length} photo
-                      {progress.skippedPhotos.length === 1 ? "" : "s"} could not be
-                      found and {progress.skippedPhotos.length === 1 ? "was" : "were"}{" "}
-                      excluded.
-                    </p>
-                  )}
+                  {"skippedPhotos" in progress &&
+                    progress.skippedPhotos &&
+                    progress.skippedPhotos.length > 0 && (
+                      <p className="text-center text-sm text-warning">
+                        {progress.skippedPhotos.length} photo
+                        {progress.skippedPhotos.length === 1 ? "" : "s"} could not be
+                        found and{" "}
+                        {progress.skippedPhotos.length === 1 ? "was" : "were"}{" "}
+                        excluded.
+                      </p>
+                    )}
                 </div>
               )}
 

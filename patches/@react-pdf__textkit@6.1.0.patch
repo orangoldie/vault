@@ -1,0 +1,24 @@
+diff --git a/lib/textkit.js b/lib/textkit.js
+index 4e1b19373f0fd279b3f9109057db1c026dcfed22..cce58320cebd55742c0acbca554f1d4018a1299d 100644
+--- a/lib/textkit.js
++++ b/lib/textkit.js
+@@ -1624,13 +1624,15 @@ const mirrorString = () => {
+     return (attributedString) => {
+         const levels = getBidiLevels(attributedString.runs);
+         let updatedString = '';
+-        attributedString.string.split('').forEach((char, index) => {
+-            const isRTL = levels[index] % 2 === 1;
++        let _i = 0;
++        for (const char of attributedString.string) {
++            const isRTL = levels[_i] % 2 === 1;
+             const mirroredChar = isRTL
+-                ? bidi$1.getMirroredCharacter(attributedString.string.charAt(index))
++                ? bidi$1.getMirroredCharacter(char)
+                 : null;
+             updatedString += mirroredChar || char;
+-        });
++            _i += char.length;
++        }
+         const result = {
+             ...attributedString,
+             string: updatedString,

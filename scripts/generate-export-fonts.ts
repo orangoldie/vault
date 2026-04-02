@@ -1,6 +1,9 @@
 /**
- * Downloads Google Fonts WOFF2 variable font files for self-hosted use in the export.
- * Downloads ALL unicode subsets so the exported trip renders text in any language.
+ * Downloads Google Fonts for self-hosted use in the offline HTML export:
+ * - WOFF2 variable fonts (all unicode subsets) for Cormorant and Outfit
+ *
+ * PDF export uses Noto fonts registered from Google Fonts CDN at runtime (see pdf-fonts.ts).
+ *
  * Places them in public/export/fonts/.
  *
  * Run: pnpm build:export-fonts
@@ -31,6 +34,7 @@ const FONTS = [
 const WOFF2_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
+
 interface FontFace {
   url: string
   unicodeRange: string
@@ -41,11 +45,10 @@ interface FontFace {
 function parseFontFaces(css: string): FontFace[] {
   const faces: FontFace[] = []
   const blocks = css.split("@font-face")
+  const urlPattern = /url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.woff2)\)/
 
   for (const block of blocks) {
-    const urlMatch = block.match(
-      /url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.woff2)\)/
-    )
+    const urlMatch = block.match(urlPattern)
     const rangeMatch = block.match(/unicode-range:\s*([^;]+);/)
     const weightMatch = block.match(/font-weight:\s*([^;]+);/)
     const styleMatch = block.match(/font-style:\s*([^;]+);/)
@@ -110,15 +113,15 @@ async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true })
 
   // Check if fonts CSS already exists (skip if so)
-  const allExist = FONTS.every((f) =>
+  const woff2Exist = FONTS.every((f) =>
     fs.existsSync(path.join(OUTPUT_DIR, `${f.prefix}.css`))
   )
-  if (allExist) {
+  if (woff2Exist) {
     console.log("Export fonts already downloaded, skipping.")
     return
   }
 
-  // Clean old single-file fonts
+  // Clean old fonts before re-download
   for (const f of fs.readdirSync(OUTPUT_DIR)) {
     fs.rmSync(path.join(OUTPUT_DIR, f))
   }
@@ -127,6 +130,7 @@ async function main() {
   for (const font of FONTS) {
     await downloadFont(font)
   }
+
   // Write manifest listing all files in the fonts directory
   const allFiles = fs
     .readdirSync(OUTPUT_DIR)

@@ -1,3 +1,6 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+patchedDependencies:
+  '@react-pdf/textkit@6.1.0': patches/@react-pdf__textkit@6.1.0.patch

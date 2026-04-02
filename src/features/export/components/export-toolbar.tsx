@@ -1,5 +1,7 @@
 "use client"
 
+import { useRef, useCallback } from "react"
+
 import { useExportTrip } from "../lib/use-export-trip"
 import { useOverlayActive } from "@/features/trip-detail/lib/overlay-context"
 import { ExportMenu } from "./export-menu"
@@ -10,8 +12,28 @@ interface ExportToolbarProps {
 }
 
 export function ExportToolbar({ tripId }: ExportToolbarProps) {
-  const { exporting, progress, start, cancel, close } = useExportTrip(tripId)
+  const { exporting, progress, startOffline, startPdf, cancel, close } =
+    useExportTrip(tripId)
   const overlayOpen = useOverlayActive()
+  const lastExportType = useRef<"offline" | "pdf">("offline")
+
+  const handleOffline = useCallback(() => {
+    lastExportType.current = "offline"
+    startOffline()
+  }, [startOffline])
+
+  const handlePdf = useCallback(() => {
+    lastExportType.current = "pdf"
+    startPdf()
+  }, [startPdf])
+
+  const handleRetry = useCallback(() => {
+    if (lastExportType.current === "pdf") {
+      startPdf()
+    } else {
+      startOffline()
+    }
+  }, [startOffline, startPdf])
 
   return (
     <>
@@ -20,7 +42,7 @@ export function ExportToolbar({ tripId }: ExportToolbarProps) {
           className="fixed top-4 z-30"
           style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
         >
-          <ExportMenu onOfflineAlbum={start} />
+          <ExportMenu onOfflineAlbum={handleOffline} onPdfAlbum={handlePdf} />
         </div>
       )}
       <ExportProgressDialog
@@ -28,7 +50,7 @@ export function ExportToolbar({ tripId }: ExportToolbarProps) {
         progress={progress}
         onClose={close}
         onCancel={cancel}
-        onRetry={start}
+        onRetry={handleRetry}
       />
     </>
   )

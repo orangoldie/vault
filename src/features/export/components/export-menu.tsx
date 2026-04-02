@@ -1,6 +1,6 @@
 "use client"
 
-import { Download, Globe } from "lucide-react"
+import { Download, Globe, FileText } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -10,7 +10,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-export function ExportMenu({ onOfflineAlbum }: { onOfflineAlbum: () => void }) {
+interface ExportMenuProps {
+  onOfflineAlbum: () => void
+  onPdfAlbum: () => void
+}
+
+export function ExportMenu({ onOfflineAlbum, onPdfAlbum }: ExportMenuProps) {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -31,6 +36,10 @@ export function ExportMenu({ onOfflineAlbum }: { onOfflineAlbum: () => void }) {
         <DropdownMenuItem onClick={onOfflineAlbum} className="gap-2">
           <Globe className="size-4" />
           Offline Album
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onPdfAlbum} className="gap-2">
+          <FileText className="size-4" />
+          PDF Album
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

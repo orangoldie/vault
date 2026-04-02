@@ -98,7 +98,7 @@ vi.mock("@/stores/photo-storage", () => ({
   }),
 }))
 
-vi.mock("@/features/export/lib/map-asset-manifest", () => ({
+vi.mock("@/features/export-web/lib/map-asset-manifest", () => ({
   MAP_FONT_PATHS: ["map-assets/fonts/Noto Sans Regular/0-255.pbf"],
   MAP_SPRITE_PATHS: ["map-assets/sprites/light.json"],
   PMTILES_PATH: "textures/globe.pmtiles",
@@ -155,7 +155,7 @@ vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
 import {
   exportTrip,
   type ExportProgress,
-} from "@/features/export/lib/export-trip"
+} from "@/features/export-web/lib/export-trip"
 
 describe("exportTrip ZIP structure", () => {
   let progressUpdates: ExportProgress[]

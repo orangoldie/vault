@@ -30,7 +30,7 @@ export default defineConfig({
     outDir: "public/export",
     emptyOutDir: false, // Don't wipe existing files (fonts, worker)
     lib: {
-      entry: path.resolve(__dirname, "src/features/export/viewer/viewer-entry.tsx"),
+      entry: path.resolve(__dirname, "src/features/export-web/viewer/viewer-entry.tsx"),
       name: "VaultViewer",
       fileName: () => "export-viewer.js",
       formats: ["iife"],

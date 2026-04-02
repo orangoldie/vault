@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 
-import { createStaticPhotoSource } from "@/features/export/viewer/static-photo-source"
+import { createStaticPhotoSource } from "@/features/export-web/viewer/static-photo-source"
 
 const photos = [
   { id: "p1", tripId: 1, chapterId: 10, filename: "img1.jpg", exportPath: "./photos/10/img1.jpg" },

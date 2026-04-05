@@ -8,7 +8,6 @@ import type { StyleSpecification } from "maplibre-gl"
 import type { Trip, Chapter } from "@/types/trip"
 
 import { TRIP_SUMMARY_ID } from "../lib/constants"
-import { OverlayProvider } from "../lib/overlay-context"
 import { HeroCover } from "./hero-cover"
 import { TripSummary } from "./trip-summary"
 import { ChapterShowcase } from "./chapter-showcase"
@@ -20,8 +19,8 @@ export interface TripDetailViewProps {
   chapters: Chapter[]
   coverPhotoUrl?: string | null
   photoCountsByChapter: Map<number, number>
-  /** Optional slot rendered in the top-right toolbar area (e.g. export button). */
-  toolbarSlot?: React.ReactNode
+  /** Called when the summary section scrolls out of / back into view. */
+  onPastSummary?: (past: boolean) => void
   /** Override globe map style (used by the export viewer for offline assets). */
   mapStyle?: StyleSpecification
 }
@@ -31,7 +30,7 @@ export function TripDetailView({
   chapters,
   coverPhotoUrl,
   photoCountsByChapter,
-  toolbarSlot,
+  onPastSummary,
   mapStyle,
 }: TripDetailViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -65,7 +64,11 @@ export function TripDetailView({
     if (!summary) return
 
     const observer = new IntersectionObserver(
-      ([entry]) => setGlobeVisible(!entry.isIntersecting),
+      ([entry]) => {
+        const past = !entry.isIntersecting
+        setGlobeVisible(past)
+        onPastSummary?.(past)
+      },
       { threshold: 0 }
     )
     observer.observe(summary)
@@ -136,7 +139,6 @@ export function TripDetailView({
       }
 
   return (
-    <OverlayProvider>
     <div ref={containerRef} aria-live="polite">
       {/* Skip to content link */}
       <a
@@ -145,8 +147,6 @@ export function TripDetailView({
       >
         Skip to content
       </a>
-
-      {toolbarSlot}
 
       {hasCover && (
         <>
@@ -163,7 +163,7 @@ export function TripDetailView({
         </>
       )}
 
-      <motion.div {...(hasCover ? unfoldProps : fadeProps)} className={hasCover ? "relative z-10" : ""}>
+      <motion.div {...(hasCover ? unfoldProps : fadeProps)} className={hasCover ? "relative z-10" : "pt-14"}>
         <div className="mx-auto w-full max-w-[720px]">
           <TripSummary
             trip={trip}
@@ -187,6 +187,5 @@ export function TripDetailView({
       </motion.div>
       <ScrollToTopButton prefersReducedMotion={prefersReducedMotion} />
     </div>
-    </OverlayProvider>
   )
 }

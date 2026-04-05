@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 
-import { ExportToolbar } from "@/features/export/components/export-toolbar"
-
+import { SiteHeader } from "@/features/landing/components/site-header"
+import { TripHeaderActions } from "@/features/export/components/trip-header-actions"
+import { OverlayProvider } from "../lib/overlay-context"
 import { PhotoSourceProvider } from "../lib/photo-source-context"
 import { opfsPhotoSource } from "../lib/opfs-photo-source"
 import { useTripDetail } from "../lib/use-trip-detail"
@@ -13,6 +14,21 @@ import { TripNotFound } from "./trip-not-found"
 import { TripDetailError } from "./trip-detail-error"
 import { TripDetailSkeleton } from "./trip-detail-skeleton"
 
+interface TripHeaderProps {
+  tripId: number | null
+  hasCover: boolean
+  pastSummary: boolean
+}
+
+function TripHeader({ tripId, hasCover, pastSummary }: TripHeaderProps) {
+  return (
+    <SiteHeader
+      visible={hasCover ? pastSummary : undefined}
+      rightSlot={tripId !== null ? <TripHeaderActions tripId={tripId} /> : null}
+    />
+  )
+}
+
 interface TripDetailPageProps {
   slug: string
 }
@@ -20,8 +36,8 @@ interface TripDetailPageProps {
 export function TripDetailPage({ slug }: TripDetailPageProps) {
   const { status, trip, chapters, coverPhotoUrl, photoCountsByChapter, retry } = useTripDetail(slug)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [pastSummary, setPastSummary] = useState(false)
 
-  // Focus management after state transitions
   useEffect(() => {
     if (
       status === "success" ||
@@ -38,9 +54,14 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
     }
   }, [status])
 
-  const prefersReducedMotion =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setPrefersReducedMotion(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
+  }, [])
 
   const fadeProps = prefersReducedMotion
     ? {}
@@ -51,32 +72,40 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
       }
 
   return (
-    <div ref={containerRef} aria-live="polite">
-      {status === "loading" && <TripDetailSkeleton />}
+    <OverlayProvider>
+      <TripHeader
+        tripId={status === "success" && trip ? trip.id : null}
+        hasCover={Boolean(coverPhotoUrl)}
+        pastSummary={pastSummary}
+      />
 
-      {status === "not-found" && (
-        <motion.div {...fadeProps}>
-          <TripNotFound />
-        </motion.div>
-      )}
+      <div ref={containerRef} aria-live="polite">
+        {status === "loading" && <TripDetailSkeleton />}
 
-      {status === "error" && (
-        <motion.div {...fadeProps}>
-          <TripDetailError onRetry={retry} />
-        </motion.div>
-      )}
+        {status === "not-found" && (
+          <motion.div {...fadeProps}>
+            <TripNotFound />
+          </motion.div>
+        )}
 
-      {status === "success" && trip && chapters && (
-        <PhotoSourceProvider source={opfsPhotoSource}>
-          <TripDetailView
-            trip={trip}
-            chapters={chapters}
-            coverPhotoUrl={coverPhotoUrl}
-            photoCountsByChapter={photoCountsByChapter ?? new Map()}
-            toolbarSlot={<ExportToolbar tripId={trip.id} />}
-          />
-        </PhotoSourceProvider>
-      )}
-    </div>
+        {status === "error" && (
+          <motion.div {...fadeProps}>
+            <TripDetailError onRetry={retry} />
+          </motion.div>
+        )}
+
+        {status === "success" && trip && chapters && (
+          <PhotoSourceProvider source={opfsPhotoSource}>
+            <TripDetailView
+              trip={trip}
+              chapters={chapters}
+              coverPhotoUrl={coverPhotoUrl}
+              photoCountsByChapter={photoCountsByChapter ?? new Map()}
+              onPastSummary={setPastSummary}
+            />
+          </PhotoSourceProvider>
+        )}
+      </div>
+    </OverlayProvider>
   )
 }

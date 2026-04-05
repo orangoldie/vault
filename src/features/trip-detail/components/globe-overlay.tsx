@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { ArrowRight, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import maplibregl from "maplibre-gl"
@@ -171,7 +172,8 @@ export function GlobeOverlay({
   const activeChapter = chapters[activeIndex]
   const highlightedIndex = selectedIndex ?? activeIndex
 
-  return (
+  if (typeof document === "undefined") return null
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -369,6 +371,7 @@ export function GlobeOverlay({
           </div>
         </div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

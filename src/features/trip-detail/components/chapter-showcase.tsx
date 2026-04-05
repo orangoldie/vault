@@ -154,7 +154,7 @@ export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexC
 
     sentinels.forEach((s) => observer.observe(s))
     return () => observer.disconnect()
-  }, [chapters])
+  }, [chapters, onActiveIndexChange])
 
   // Show nav only after the summary section has scrolled out of view
   useEffect(() => {
@@ -249,7 +249,7 @@ export function ChapterShowcase({ chapters, photoCountsByChapter, onActiveIndexC
         onNavigate={handleNavigate}
       />
 
-      <div ref={showcaseRef} id="chapter-showcase" className="bg-background pt-4">
+      <div ref={showcaseRef} id="chapter-showcase" className="bg-background pt-24">
         {chapters.map((chapter, index) => (
           <div key={chapter.id}>
             {index > 0 && <RouteLine />}

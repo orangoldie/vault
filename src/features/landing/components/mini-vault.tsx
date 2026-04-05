@@ -6,6 +6,31 @@ const BRONZE = "hsl(32, 55%, 38%)"
 const BRONZE_DIM = "hsl(32, 20%, 72%)"
 const CREAM = "hsl(38, 30%, 95%)"
 
+// Precomputed at module level — keeps server and client renders identical
+// by avoiding floating-point serialization differences at render time.
+const TICK_MARKS = Array.from({ length: 12 }, (_, i) => {
+  const angle = (i / 12) * Math.PI * 2
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  const isMajor = i % 3 === 0
+  return {
+    x1: +((200 + 140 * cos).toFixed(3)),
+    y1: +((200 + 140 * sin).toFixed(3)),
+    x2: +((200 + 158 * cos).toFixed(3)),
+    y2: +((200 + 158 * sin).toFixed(3)),
+    strokeWidth: isMajor ? "5" : "2.5",
+    opacity: isMajor ? "0.5" : "0.25",
+  }
+})
+
+const HANDLE_ENDPOINTS = [0, 90, 180, 270].map((deg) => {
+  const rad = (deg * Math.PI) / 180
+  return {
+    cx: +((200 + 100 * Math.cos(rad)).toFixed(3)),
+    cy: +((200 + 100 * Math.sin(rad)).toFixed(3)),
+  }
+})
+
 interface MiniVaultProps {
   className?: string
 }
@@ -42,25 +67,19 @@ export function MiniVault({ className }: MiniVaultProps) {
 
       {/* Rotating mechanism */}
       <g className="origin-center animate-[spin_240s_linear_infinite] motion-reduce:animate-none">
-        {/* Tick marks — major only at this size */}
-        {Array.from({ length: 12 }).map((_, i) => {
-          const angle = (i / 12) * Math.PI * 2
-          const cos = Math.cos(angle)
-          const sin = Math.sin(angle)
-          const isMajor = i % 3 === 0
-          return (
-            <line
-              key={i}
-              x1={200 + 140 * cos}
-              y1={200 + 140 * sin}
-              x2={200 + 158 * cos}
-              y2={200 + 158 * sin}
-              stroke={BRONZE}
-              strokeWidth={isMajor ? "5" : "2.5"}
-              opacity={isMajor ? "0.5" : "0.25"}
-            />
-          )
-        })}
+        {/* Tick marks */}
+        {TICK_MARKS.map((t, i) => (
+          <line
+            key={i}
+            x1={t.x1}
+            y1={t.y1}
+            x2={t.x2}
+            y2={t.y2}
+            stroke={BRONZE}
+            strokeWidth={t.strokeWidth}
+            opacity={t.opacity}
+          />
+        ))}
 
         {/* Cross-hair handle */}
         <line
@@ -79,21 +98,18 @@ export function MiniVault({ className }: MiniVaultProps) {
         />
 
         {/* Handle endpoints */}
-        {[0, 90, 180, 270].map((angle) => {
-          const rad = (angle * Math.PI) / 180
-          const x = 200 + 100 * Math.cos(rad)
-          const y = 200 + 100 * Math.sin(rad)
-          return (
-            <circle
-              key={angle}
-              cx={x} cy={y} r="12"
-              fill={CREAM}
-              stroke={BRONZE}
-              strokeWidth="4"
-              opacity="0.5"
-            />
-          )
-        })}
+        {HANDLE_ENDPOINTS.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.cx}
+            cy={p.cy}
+            r="12"
+            fill={CREAM}
+            stroke={BRONZE}
+            strokeWidth="4"
+            opacity="0.5"
+          />
+        ))}
 
         {/* Centre hub */}
         <circle

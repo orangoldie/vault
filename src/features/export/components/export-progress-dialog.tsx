@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { CheckCircle2, AlertCircle, X } from "lucide-react"
 
@@ -86,7 +87,7 @@ export function ExportProgressDialog({
     return 0
   })()
 
-  return (
+  const content = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -249,4 +250,9 @@ export function ExportProgressDialog({
       )}
     </AnimatePresence>
   )
+
+  // Portal to document.body so the fixed overlay isn't clipped by any
+  // ancestor stacking context (e.g. the site header's backdrop-filter).
+  if (typeof document === "undefined") return null
+  return createPortal(content, document.body)
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
 
@@ -144,7 +145,8 @@ export function PhotoLightbox({
     }
   }
 
-  return (
+  if (typeof document === "undefined") return null
+  return createPortal(
     <motion.div
       ref={containerRef}
       role="dialog"
@@ -241,6 +243,7 @@ export function PhotoLightbox({
           <bdi>{chapterName}</bdi> — {currentIndex + 1} of {total}
         </p>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }

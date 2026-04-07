@@ -1,3 +1,0 @@
-public/map-assets/sprites/*.png filter=lfs diff=lfs merge=lfs -text
-public/textures/*.pmtiles filter=lfs diff=lfs merge=lfs -text
-public/map-assets/fonts/**/*.pbf filter=lfs diff=lfs merge=lfs -text

@@ -20,7 +20,7 @@ vi.mock("framer-motion", () => {
   const makeElement = (tag: string) => {
     return (props: Record<string, unknown>) => {
       const { children, ...rest } = stripMotionProps(props)
-      const Tag = tag as keyof JSX.IntrinsicElements
+      const Tag = tag as unknown as React.ElementType
       return <Tag {...rest}>{children as React.ReactNode}</Tag>
     }
   }

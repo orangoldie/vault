@@ -172,7 +172,7 @@ describe("exportTrip ZIP structure", () => {
     })
 
     if (capturedBlob) {
-      const buffer = await capturedBlob.arrayBuffer()
+      const buffer = await (capturedBlob as Blob).arrayBuffer()
       zipData = new Uint8Array(buffer)
     }
   })

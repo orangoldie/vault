@@ -254,7 +254,7 @@ function SingleColumnDescription({
       style={[
         styles.descriptionBlock,
         { maxWidth: 380 },
-        isRtl ? { alignSelf: "flex-end" } : undefined,
+        isRtl ? { alignSelf: "flex-end" } : {},
       ]}
     >
       {text.split("\n").map((line, i) => (

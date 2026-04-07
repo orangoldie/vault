@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 
+import { FeedbackButton } from "@/features/feedback/components/feedback-button"
 import { SiteHeader } from "@/features/landing/components/site-header"
 import { TripHeaderActions } from "@/features/export/components/trip-header-actions"
 import { OverlayProvider } from "../lib/overlay-context"
@@ -79,6 +80,7 @@ export function TripDetailPage({ slug }: TripDetailPageProps) {
         pastSummary={pastSummary}
       />
 
+      <FeedbackButton />
       <div ref={containerRef} aria-live="polite">
         {status === "loading" && <TripDetailSkeleton />}
 

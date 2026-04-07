@@ -15,6 +15,7 @@ import { ImportProgress } from "./import-progress"
 import { ImportErrorView } from "./import-error"
 import { ExtractionSpinner } from "./extraction-spinner"
 import { TripSelectionList } from "./trip-selection-list"
+import { FeedbackButton } from "@/features/feedback/components/feedback-button"
 import { importTrip, shouldWarnAboutSize, scanTripsFromFile } from "../lib/import-trip"
 import { getAllTrips } from "@/stores/db"
 import {
@@ -384,6 +385,7 @@ export function ImportPageContent() {
       </main>
 
       <SiteFooter />
+      <FeedbackButton />
     </div>
   )
 }

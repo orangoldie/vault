@@ -64,8 +64,8 @@ export interface ParsedTripData {
   trip: Trip
   chapters: Chapter[]
   tripDirPath: string
-  /** S3 URL for the cover photo — downloaded during import. */
-  coverPhotoS3Url: string | null
+  /** S3 URLs to try in order for the cover photo (full-res may be in Glacier). */
+  coverPhotoS3Candidates: string[]
 }
 
 export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripData {
@@ -89,7 +89,12 @@ export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripD
     throw new ImportError("EMPTY_TRIP", "This trip has no chapters")
   }
 
-  const coverPhotoS3Url = raw.cover_photo?.path ?? null
+  // Build a prioritised list of URLs to try: full-res first, then thumbnails.
+  // Full-res images may be in S3 Glacier Deep Archive (403 InvalidObjectState).
+  const coverPhotoS3Candidates: string[] = []
+  if (raw.cover_photo?.path) coverPhotoS3Candidates.push(raw.cover_photo.path)
+  if (raw.cover_photo?.large_thumbnail_path) coverPhotoS3Candidates.push(raw.cover_photo.large_thumbnail_path)
+  if (raw.cover_photo?.small_thumbnail_path) coverPhotoS3Candidates.push(raw.cover_photo.small_thumbnail_path)
 
   const trip: Trip = {
     id: raw.id,
@@ -127,5 +132,5 @@ export function parseTrip(entries: ZipEntries, tripDirPath: string): ParsedTripD
     uuid: rawStep.uuid,
   }))
 
-  return { trip, chapters, tripDirPath, coverPhotoS3Url }
+  return { trip, chapters, tripDirPath, coverPhotoS3Candidates }
 }

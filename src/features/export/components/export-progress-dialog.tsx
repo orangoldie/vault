@@ -82,8 +82,11 @@ export function ExportProgressDialog({
     if (phase === "archiving" && progress && progress.total > 0) {
       return 5 + Math.round((progress.current / progress.total) * 95)
     }
-    // PDF phases
-    if (phase === "composing") return 50
+    // PDF phases — 0–90% while processing photos, 90–99% while rendering
+    if (phase === "composing" && progress && progress.total > 0) {
+      return Math.round((progress.current / progress.total) * 90)
+    }
+    if (phase === "composing") return 0
     return 0
   })()
 
@@ -158,7 +161,10 @@ export function ExportProgressDialog({
                     {phase === "archiving" &&
                       progress &&
                       `Exporting photos... (${progress.current} / ${progress.total})`}
-                    {phase === "composing" && "Composing album..."}
+                    {phase === "composing" &&
+                      (progress && progress.total > 0 && progress.current < progress.total
+                        ? `Composing album... (${progress.current} / ${progress.total} photos)`
+                        : "Rendering PDF...")}
                   </p>
                 </>
               )}

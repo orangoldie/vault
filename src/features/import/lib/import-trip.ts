@@ -48,7 +48,7 @@ export async function importTrip(
   // Phase 2: Parse trip data (another 5% — fast)
   onProgress({ phase: "reading", percent: 8, detail: "Reading trip data..." })
 
-  const { trip, chapters, coverPhotoS3Url } = parseTrip(entries, tripDirPath)
+  const { trip, chapters, coverPhotoS3Candidates } = parseTrip(entries, tripDirPath)
 
   onProgress({ phase: "reading", percent: 10, detail: "Reading trip data..." })
 
@@ -118,20 +118,22 @@ export async function importTrip(
     onProgress({ phase: "storing", percent: 100, detail: "Done" })
   }
 
-  // Download cover photo from S3 — the export doesn't include it locally
-  if (coverPhotoS3Url) {
+  // Download cover photo from S3 — the export doesn't include it locally.
+  // Try candidates in order (full-res first) since older full-res images may
+  // be in S3 Glacier Deep Archive (returns 403 InvalidObjectState).
+  for (const url of coverPhotoS3Candidates) {
     try {
-      const res = await fetch(coverPhotoS3Url)
-      if (res.ok) {
-        const blob = await res.blob()
-        const data = new Uint8Array(await blob.arrayBuffer())
-        const filename = "cover.jpg"
-        await writePhoto(trip.id, "cover", filename, data)
-        trip.coverPhotoId = `${trip.id}-cover-${filename}`
-        await saveTrip(trip)
-      }
+      const res = await fetch(url)
+      if (!res.ok) continue
+      const blob = await res.blob()
+      const data = new Uint8Array(await blob.arrayBuffer())
+      const filename = "cover.jpg"
+      await writePhoto(trip.id, "cover", filename, data)
+      trip.coverPhotoId = `${trip.id}-cover-${filename}`
+      await saveTrip(trip)
+      break
     } catch {
-      // Cover download failed (CORS, offline, etc.) — proceed without it
+      // Network error — try next candidate
     }
   }
 

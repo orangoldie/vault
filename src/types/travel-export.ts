@@ -26,6 +26,8 @@ export interface RawStep {
 export interface RawCoverPhoto {
   id: number
   path: string
+  large_thumbnail_path?: string
+  small_thumbnail_path?: string
   uuid: string
 }
 

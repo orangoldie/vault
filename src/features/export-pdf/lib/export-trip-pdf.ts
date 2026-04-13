@@ -116,9 +116,10 @@ export async function exportTripPdf({
     // ── Step 3: Classify + resolve data URLs + pack pages (per chapter) ──
     // Single pass per photo: read blob once → get dimensions → classify → convert to data URL.
     // Each chapter is processed independently to cap peak memory.
-    onProgress({ phase: "composing", current: 0, total: 0 })
+    onProgress({ phase: "composing", current: 0, total: totalPhotos })
 
     const sections: ChapterSection[] = []
+    let photosProcessed = 0
 
     for (const chapter of sortedChapters) {
       checkAbort(signal)
@@ -158,6 +159,7 @@ export async function exportTripPdf({
           aspect: classifyAspect(width, height),
         })
         dataUrlsByFilename.set(photo.filename, await blobToDataUrl(blob))
+        onProgress({ phase: "composing", current: ++photosProcessed, total: totalPhotos })
       }
 
       // Pack chapter text + photos into pages via two-phase layout algorithm

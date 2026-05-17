@@ -7,10 +7,8 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { SiteHeader } from "@/features/landing/components/site-header"
 import { SiteFooter } from "@/features/landing/components/site-footer"
-import { SourcePicker, type ImportSource } from "./source-picker"
 import { ExportInstructions } from "./export-instructions"
 import { ArchiveSection } from "./archive-section"
-import { ImportDisclaimer } from "./import-disclaimer"
 import { ImportProgress } from "./import-progress"
 import { ImportErrorView } from "./import-error"
 import { ExtractionSpinner } from "./extraction-spinner"
@@ -39,17 +37,11 @@ const reducedStateVariants = {
   exit: { opacity: 1, y: 0 },
 }
 
-const panelVariants = {
-  initial: { height: 0, opacity: 0 },
-  animate: { height: "auto", opacity: 1 },
-  exit: { height: 0, opacity: 0 },
-}
 
 export function ImportPageContent() {
   const [importState, setImportState] = useState<ImportState>({ status: "idle" })
   const [trips, setTrips] = useState<Trip[]>([])
   const [tripName, setTripName] = useState<string | null>(null)
-  const [source, setSource] = useState<ImportSource | null>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const importStartTime = useRef<number>(0)
   const activeRegionRef = useRef<HTMLDivElement>(null)
@@ -197,26 +189,19 @@ export function ImportPageContent() {
 
   const variants = prefersReducedMotion ? reducedStateVariants : stateVariants
   const transition = prefersReducedMotion ? { duration: 0 } : stateTransition
-  const panelTransition = {
-    duration: prefersReducedMotion ? 0 : 0.3,
-    ease: [0.16, 1, 0.3, 1] as const,
-  }
 
   const isIdle = importState.status === "idle"
 
   return (
     <div className="flex min-h-svh flex-col bg-vault-bg">
-      <SiteHeader />
+      <SiteHeader visible={true} />
 
       <main id="main-content" className="flex-1">
         {/* Page intro */}
         <div className="max-w-3xl mx-auto px-6 pb-10 pt-20 sm:px-8">
           <h1 className="font-serif text-3xl font-semibold tracking-wide text-vault-text md:text-4xl">
-            Archive your travels
+            Import your Polarsteps trips
           </h1>
-          <p className="mt-2 max-w-lg text-base font-light text-vault-text-dim">
-            Import your travel data export and preserve your trips in Journey Vault.
-          </p>
         </div>
 
         {/* Archive section — only when trips exist */}
@@ -257,24 +242,7 @@ export function ImportPageContent() {
                   exit="exit"
                   transition={transition}
                 >
-                  <SourcePicker selected={source} onSelect={setSource} />
-
-                  {/* Instruction panel — slides in when primary source selected */}
-                  <AnimatePresence>
-                    {source === "primary" && (
-                      <motion.div
-                        key="instructions"
-                        variants={panelVariants}
-                        initial="initial"
-                        animate="animate"
-                        exit="exit"
-                        transition={panelTransition}
-                        style={{ overflow: "hidden" }}
-                      >
-                        <ExportInstructions onFileSelected={handleFileSelected} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <ExportInstructions onFileSelected={handleFileSelected} />
                 </motion.div>
               )}
 
@@ -381,10 +349,9 @@ export function ImportPageContent() {
           </div>
         </div>
 
-        <ImportDisclaimer />
       </main>
 
-      <SiteFooter />
+      <SiteFooter disclaimer />
       <FeedbackButton />
     </div>
   )

@@ -1,11 +1,8 @@
 import { Scale } from "lucide-react"
 
-import { OrnamentalRule } from "@/components/ornamental-rule"
-
 export function ImportDisclaimer() {
   return (
-    <div className="max-w-3xl mx-auto px-6 pb-8 pt-16 sm:px-8">
-      <OrnamentalRule className="mb-8" />
+    <div className="max-w-3xl mx-auto px-6 pb-8 pt-8 sm:px-8">
 
       <aside aria-label="Legal notice">
         <div className="flex items-start gap-4 rounded-2xl border border-vault-gold/20 bg-vault-surface px-7 py-6">

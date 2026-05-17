@@ -1,24 +1,22 @@
-import { Shield } from "lucide-react"
+interface SiteFooterProps {
+  disclaimer?: boolean
+}
 
-import { OrnamentalRule } from "@/components/ornamental-rule"
-
-export function SiteFooter() {
+export function SiteFooter({ disclaimer = false }: SiteFooterProps) {
   return (
     <footer
       role="contentinfo"
       className="border-t border-vault-gold/10"
     >
       <div className="mx-auto max-w-4xl px-6 py-8 sm:px-8">
-        <OrnamentalRule className="mb-6" />
-
         <div className="flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Shield className="size-3.5 text-vault-gold/40" />
-            <span className="text-xs text-vault-text-dim">
-              Your data never leaves your browser
-            </span>
-          </div>
-
+          {disclaimer && (
+            <p className="max-w-xl text-center text-xs leading-relaxed text-vault-text-dim/60">
+              Journey Vault is an independent tool and is not affiliated with,
+              endorsed by, or officially connected to Polarsteps or its parent
+              company. All trademarks belong to their respective owners.
+            </p>
+          )}
           <div className="flex items-center gap-3 text-xs text-vault-text-dim">
             <span className="cursor-default">Privacy</span>
             <span className="text-vault-gold/30">&middot;</span>

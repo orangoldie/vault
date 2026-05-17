@@ -5,6 +5,7 @@ import type { Trip, Chapter, Photo } from "@/types/trip"
 import { getTrip, getChaptersByTrip, getPhotosByChapter } from "@/stores/db"
 import { readPhoto } from "@/stores/photo-storage"
 import { decomposeCoverPhotoId } from "@/features/trip-detail/lib/decompose-cover-photo-id"
+import { deriveExportSlug } from "@/features/export/lib/derive-export-slug"
 import { getCountryRoute } from "@/features/trip-detail/lib/country-route"
 
 import { classifyAspect, type ClassifiedPhoto } from "./classify-photos"
@@ -190,7 +191,7 @@ export async function exportTripPdf({
     const url = URL.createObjectURL(blob)
     const a = window.document.createElement("a")
     a.href = url
-    a.download = `${trip.slug}-album.pdf`
+    a.download = `${deriveExportSlug(trip.name, trip.startDate, trip.slug)}.pdf`
     a.click()
     URL.revokeObjectURL(url)
 

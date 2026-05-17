@@ -5,6 +5,7 @@ import { getTrip, getChaptersByTrip, getPhotosByChapter } from "@/stores/db"
 import { readPhoto } from "@/stores/photo-storage"
 
 import { decomposeCoverPhotoId } from "@/features/trip-detail/lib/decompose-cover-photo-id"
+import { deriveExportSlug } from "@/features/export/lib/derive-export-slug"
 
 import {
   encodeUtf8,
@@ -327,7 +328,7 @@ export async function exportTrip({
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${trip.slug}.zip`
+    a.download = `${deriveExportSlug(trip.name, trip.startDate, trip.slug)}.zip`
     a.click()
     URL.revokeObjectURL(url)
 

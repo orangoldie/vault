@@ -187,7 +187,7 @@ export function TripGlobe({
       {/* Desktop mini globe — bottom-right corner, always mounted to preserve map state */}
       <div
         className={cn(
-          "fixed top-1/2 z-30 hidden -translate-y-1/2 transition-all lg:block",
+          "fixed top-1/2 z-30 hidden -translate-y-1/2 transition-all min-[1500px]:block",
           prefersReducedMotion ? "duration-0" : "duration-300",
           visible
             ? "pointer-events-auto scale-100 opacity-100"
@@ -292,7 +292,7 @@ export function TripGlobe({
             transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
             onClick={handleExpand}
             className={cn(
-              "fixed bottom-20 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg lg:hidden",
+              "fixed bottom-20 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg min-[1500px]:hidden",
               "bg-vault-surface text-vault-gold ring-1 ring-vault-gold/20",
               "transition-colors hover:bg-vault-gold hover:text-white"
             )}

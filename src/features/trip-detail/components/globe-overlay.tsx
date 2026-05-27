@@ -15,6 +15,7 @@ import type { Chapter } from "@/types/trip"
 import { cn } from "@/lib/utils"
 
 import { createGlobeStyle } from "../lib/globe-style"
+import { GlobeStarfield } from "./globe-starfield"
 
 // Ensure PMTiles protocol is registered
 let protocolRegistered = false
@@ -35,6 +36,7 @@ interface GlobeOverlayProps {
 }
 
 const NAVIGATE_SCROLL_INSET = 0.03
+const GLOBE_ZOOM = 2.3
 
 function scrollToChapter(chapters: Chapter[], index: number) {
   const chapter = chapters[index]
@@ -92,7 +94,7 @@ export function GlobeOverlay({
     if (active) {
       mapRef.current.flyTo({
         center: [active.lon, active.lat],
-        zoom: 3.5,
+        zoom: GLOBE_ZOOM,
         duration: 800,
       })
     }
@@ -105,7 +107,7 @@ export function GlobeOverlay({
     if (loc) {
       mapRef.current.flyTo({
         center: [loc.lon, loc.lat],
-        zoom: 3.5,
+        zoom: GLOBE_ZOOM,
         duration: 600,
       })
     }
@@ -185,6 +187,20 @@ export function GlobeOverlay({
         aria-label="Trip globe view"
         onClick={handleBackdropClick}
       >
+        {/* Living star constellation backdrop */}
+        <GlobeStarfield className="pointer-events-none absolute inset-0 z-0" />
+
+        {/* Film grain texture over the whole overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 z-20 opacity-[0.035]"
+          aria-hidden="true"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "256px 256px",
+          }}
+        />
+
         {/* Close button */}
         <button
           onClick={(e) => {
@@ -199,7 +215,7 @@ export function GlobeOverlay({
 
         {/* Globe container */}
         <div
-          className="relative"
+          className="relative z-10"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Chapter list sidebar — positioned to the left of the globe */}
@@ -267,7 +283,7 @@ export function GlobeOverlay({
                 initialViewState={{
                   longitude: activeChapter?.location.lon ?? 0,
                   latitude: activeChapter?.location.lat ?? 20,
-                  zoom: 3.5,
+                  zoom: GLOBE_ZOOM,
                 }}
                 attributionControl={false}
                 onLoad={handleLoad}

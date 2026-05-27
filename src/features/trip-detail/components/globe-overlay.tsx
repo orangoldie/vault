@@ -203,7 +203,7 @@ export function GlobeOverlay({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Chapter list sidebar — positioned to the left of the globe */}
-          <div className="absolute right-full mr-6 top-1/2 -translate-y-1/2 hidden max-h-[70vh] w-56 overflow-y-auto rounded-xl bg-[hsl(30,10%,15%)] border border-white/10 p-4 scrollbar-hidden md:block">
+          <div className="absolute right-full mr-6 top-1/2 -translate-y-1/2 hidden max-h-[70vh] w-56 overflow-y-auto rounded-xl bg-[hsl(30,10%,15%)] border border-white/10 p-4 scrollbar-hidden lg:block">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-vault-gold-dim">
               Chapters
             </p>

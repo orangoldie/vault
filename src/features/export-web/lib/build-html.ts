@@ -33,12 +33,12 @@ export function buildHtml({ trip, chapters, photos, coverPhotoPath }: BuildHtmlO
   <title>${escapeHtml(trip.name)} — Journey Vault</title>
 
   <!-- App display fonts (self-hosted WOFF2, all subsets) -->
-  <link rel="stylesheet" href="./fonts/cormorant.css">
-  <link rel="stylesheet" href="./fonts/outfit.css">
+  <link rel="stylesheet" href="./fonts/newsreader.css">
+  <link rel="stylesheet" href="./fonts/geist-sans.css">
   <style>
     :root {
-      --font-display: 'Cormorant', serif;
-      --font-body: 'Outfit', sans-serif;
+      --font-display: 'Newsreader', serif;
+      --font-geist-sans: 'Geist Sans', sans-serif;
     }
   </style>
 

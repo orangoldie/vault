@@ -1,18 +1,15 @@
 import type { Metadata } from "next"
-import { Cormorant, Outfit } from "next/font/google"
+import { Newsreader } from "next/font/google"
+import { GeistSans } from "geist/font/sans"
 
 import { Providers } from "./providers"
 
 import "./globals.css"
 
-const cormorant = Cormorant({
+const newsreader = Newsreader({
   variable: "--font-display",
   subsets: ["latin", "latin-ext"],
-})
-
-const outfit = Outfit({
-  variable: "--font-body",
-  subsets: ["latin", "latin-ext"],
+  weight: ["300", "400", "500", "600", "700"],
 })
 
 export const metadata: Metadata = {
@@ -27,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${cormorant.variable} ${outfit.variable} font-sans antialiased`}>
+      <body className={`${newsreader.variable} ${GeistSans.variable} font-sans antialiased`}>
         <Providers>
           {children}
         </Providers>

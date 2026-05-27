@@ -212,7 +212,7 @@ export function ShowcaseReveal({ reducedMotion = false, className }: ShowcaseRev
         </Reveal>
 
         {/* Text */}
-        <div className="mx-auto mt-3 max-w-lg text-center md:mt-4">
+        <div className="mx-auto -mt-2 max-w-lg text-center md:-mt-3">
           <Reveal delay={0.15} disabled={rm}>
             <h2 className="font-serif text-xl font-semibold tracking-wide text-vault-text md:text-2xl">
               From your travel app to a personal archive.

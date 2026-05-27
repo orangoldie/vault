@@ -1,6 +1,7 @@
 /**
- * Downloads Google Fonts for self-hosted use in the offline HTML export:
- * - WOFF2 variable fonts (all unicode subsets) for Cormorant and Outfit
+ * Prepares fonts for self-hosted use in the offline HTML export:
+ * - Downloads Newsreader from Google Fonts (WOFF2 variable font, all subsets)
+ * - Copies Geist Sans variable font from node_modules
  *
  * PDF export uses Noto fonts registered from Google Fonts CDN at runtime (see pdf-fonts.ts).
  *
@@ -15,25 +16,17 @@ import { fileURLToPath } from "url"
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const OUTPUT_DIR = path.resolve(__dirname, "../public/export/fonts")
 
-const FONTS = [
+const GOOGLE_FONTS = [
   {
-    family: "Cormorant",
-    // Variable font CSS URL — full weight range, normal + italic
+    family: "Newsreader",
     cssUrl:
-      "https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300..700;1,300..700&display=swap",
-    prefix: "cormorant",
-  },
-  {
-    family: "Outfit",
-    cssUrl:
-      "https://fonts.googleapis.com/css2?family=Outfit:wght@300..700&display=swap",
-    prefix: "outfit",
+      "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&display=swap",
+    prefix: "newsreader",
   },
 ]
 
 const WOFF2_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-
 
 interface FontFace {
   url: string
@@ -65,7 +58,9 @@ function parseFontFaces(css: string): FontFace[] {
   return faces
 }
 
-async function downloadFont(font: (typeof FONTS)[number]): Promise<void> {
+async function downloadGoogleFont(
+  font: (typeof GOOGLE_FONTS)[number]
+): Promise<void> {
   console.log(`\n  Downloading ${font.family}...`)
 
   const cssResponse = await fetch(font.cssUrl, {
@@ -109,14 +104,40 @@ async function downloadFont(font: (typeof FONTS)[number]): Promise<void> {
   )
 }
 
+function copyGeistSans(): void {
+  console.log(`\n  Copying Geist Sans from node_modules...`)
+
+  const srcPath = path.resolve(
+    __dirname,
+    "../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2"
+  )
+  const destPath = path.join(OUTPUT_DIR, "geist-sans.woff2")
+
+  fs.copyFileSync(srcPath, destPath)
+  const size = fs.statSync(destPath).size
+
+  const css = `@font-face {
+  font-family: 'Geist Sans';
+  src: url('./geist-sans.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+`
+  fs.writeFileSync(path.join(OUTPUT_DIR, "geist-sans.css"), css, "utf-8")
+
+  console.log(`    1 file, ${(size / 1024).toFixed(0)} KB total`)
+}
+
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true })
 
   // Check if fonts CSS already exists (skip if so)
-  const woff2Exist = FONTS.every((f) =>
-    fs.existsSync(path.join(OUTPUT_DIR, `${f.prefix}.css`))
-  )
-  if (woff2Exist) {
+  const alreadyExist =
+    fs.existsSync(path.join(OUTPUT_DIR, "newsreader.css")) &&
+    fs.existsSync(path.join(OUTPUT_DIR, "geist-sans.css"))
+
+  if (alreadyExist) {
     console.log("Export fonts already downloaded, skipping.")
     return
   }
@@ -126,10 +147,13 @@ async function main() {
     fs.rmSync(path.join(OUTPUT_DIR, f))
   }
 
-  console.log("Downloading export fonts (all subsets)...")
-  for (const font of FONTS) {
-    await downloadFont(font)
+  console.log("Preparing export fonts (all subsets)...")
+
+  for (const font of GOOGLE_FONTS) {
+    await downloadGoogleFont(font)
   }
+
+  copyGeistSans()
 
   // Write manifest listing all files in the fonts directory
   const allFiles = fs
@@ -145,6 +169,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Failed to download export fonts:", err)
+  console.error("Failed to prepare export fonts:", err)
   process.exit(1)
 })

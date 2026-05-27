@@ -10,7 +10,7 @@
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
-  --font-sans: var(--font-body);
+  --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-display);
   --color-vault-bg: hsl(38 30% 95%);
   --color-vault-surface: hsl(36 22% 90%);

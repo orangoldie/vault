@@ -188,6 +188,47 @@ describe("packChapterPages", () => {
     }
   })
 
+  it("prefers a balanced grouping over a lopsided exact fit", () => {
+    // 4 squarish (4:3) landscapes on one page: balanced 2-2 (downscaled slightly)
+    // beats a lopsided 3-1 that happens to fit the height exactly. Group boxes into
+    // rows by their top coordinate and assert no row holds 3+ while another holds 1.
+    const chapter = makeChapter()
+    const photos = makePhotos(Array(4).fill("landscape"))
+    const photoPage = packChapterPages(chapter, photos, fontMetrics).find(
+      (p) => p.photos.length > 0,
+    )!
+
+    const rowSizes = new Map<number, number>()
+    for (const box of photoPage.photos) {
+      const key = Math.round(box.top)
+      rowSizes.set(key, (rowSizes.get(key) ?? 0) + 1)
+    }
+    const counts = [...rowSizes.values()]
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)
+  })
+
+  it("preserves photo aspect ratios — no cropping", () => {
+    // Every box must match its photo's true aspect ratio so objectFit:cover
+    // has nothing to crop. Test across sparse and dense pages.
+    for (const aspects of [
+      ["portrait"] as const,
+      ["portrait", "portrait", "portrait"] as const,
+      ["landscape", "landscape", "landscape", "landscape", "landscape", "landscape"] as const,
+      ["landscape", "portrait", "landscape", "portrait", "portrait"] as const,
+    ]) {
+      const chapter = makeChapter()
+      const photos = makePhotos([...aspects])
+      const pages = packChapterPages(chapter, photos, fontMetrics)
+      for (const page of pages) {
+        for (const box of page.photos) {
+          const photoAr = box.photo.width / box.photo.height
+          const boxAr = box.width / box.height
+          expect(boxAr).toBeCloseTo(photoAr, 2)
+        }
+      }
+    }
+  })
+
   it("handles mixed aspect ratios", () => {
     const chapter = makeChapter()
     const photos = makePhotos([

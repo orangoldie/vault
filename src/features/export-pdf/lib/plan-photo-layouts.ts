@@ -128,47 +128,99 @@ function groupByRow(boxes: Array<{ height: number; row: number }>): RowInfo[] {
     .map((e) => e[1])
 }
 
+type Layout = ReturnType<typeof justifiedLayout>
+
+/** Bounding-box width (widest row) and stacked height of a laid-out block. */
+function blockBounds(layout: Layout): { width: number; height: number } {
+  const rowRightEdge = new Map<number, number>()
+  for (const box of layout.boxes) {
+    const right = box.left + box.width
+    rowRightEdge.set(box.row, Math.max(rowRightEdge.get(box.row) ?? 0, right))
+  }
+  return { width: Math.max(...rowRightEdge.values()), height: layout.containerHeight }
+}
+
 /**
- * Scale a pre-selected set of photos to fill availableHeight exactly.
+ * Choose the row grouping that covers the most page area once the block is
+ * uniformly scaled to fit (aspect preserved, so cover never crops).
  *
- * Runs a local strip at availableHeight/2 to determine the correct row grouping
- * for this height, then scales row height to fill the page edge-to-edge.
+ * The grouping (photos-per-row) is the only free variable — once it's fixed,
+ * justifiedLayout pins the row heights. Sweeping the target row height enumerates
+ * the candidate groupings; for each we score the final covered area s²·A, where
+ * s = min(widthFit, heightFit) is the uniform fit scale. This naturally prefers a
+ * balanced grouping that slightly overflows and downscales (e.g. 2-2 of squarish
+ * landscapes at ~90%) over a lopsided one that fits exactly (3-1) — the balanced
+ * block keeps photos bigger. The maximum lands on the block height nearest the
+ * page height, with overshoot gently penalised by s².
+ */
+function selectBestLayout(aspectRatios: number[], availableHeight: number): Layout {
+  const STEPS = 48
+  const minTarget = 40
+  let best: Layout | null = null
+  let bestScore = -1
+
+  for (let i = 0; i <= STEPS; i++) {
+    const target = minTarget + ((availableHeight - minTarget) * i) / STEPS
+    const layout = justifiedLayout(aspectRatios, {
+      containerWidth: contentWidth,
+      boxSpacing: t.spacing.photoGutter,
+      targetRowHeight: target,
+    })
+    const { width, height } = blockBounds(layout)
+    const naturalArea = layout.boxes.reduce((sum, b) => sum + b.width * b.height, 0)
+    const s = Math.min(contentWidth / width, availableHeight / height)
+    const score = s * s * naturalArea
+    if (score > bestScore) {
+      bestScore = score
+      best = layout
+    }
+  }
+
+  return best!
+}
+
+/**
+ * Fit a pre-selected set of photos to the page, preserving every photo's
+ * aspect ratio — never stretches one axis, so objectFit:cover has nothing to crop.
+ *
+ * Picks the area-optimal row grouping (see selectBestLayout), then scales the
+ * whole block uniformly to fit. Downscaling a balanced-but-slightly-tall block is
+ * preferred over an exact-fit lopsided one. Over-tall blocks (a single portrait is
+ * always taller than a landscape page) pillarbox; whichever axis binds, the other
+ * is centered. Scaling is uniform in both directions, so nothing is ever cropped.
  */
 function scalePageToFill(photos: ClassifiedPhoto[], availableHeight: number): PhotoBox[] {
   if (photos.length === 0) return []
 
   const aspectRatios = photos.map((p) => p.width / p.height)
 
-  // One run at availableHeight/2 to get the row grouping.
-  // Scale top/height by availableHeight/containerHeight to fill the page exactly.
-  // Width/left are already correct — justifiedLayout fills containerWidth horizontally.
-  // The slight vertical aspect-ratio shift is invisible with objectFit:cover.
-  const result = justifiedLayout(aspectRatios, {
-    containerWidth: contentWidth,
-    boxSpacing: t.spacing.photoGutter,
-    targetRowHeight: availableHeight / 2,
-  })
+  const result = selectBestLayout(aspectRatios, availableHeight)
 
-  const yScale = availableHeight / result.containerHeight
-
-  // Center each row: compute the rightmost edge of each row, derive offset to center it.
-  // For full rows justifiedLayout fills contentWidth so offset is 0. For partial last
-  // rows (e.g. one orphan photo) the offset shifts them to the horizontal center.
+  // Bounding box of the laid-out block: widest row × stacked height.
   const rowRightEdge = new Map<number, number>()
   for (const box of result.boxes) {
     const right = box.left + box.width
     rowRightEdge.set(box.row, Math.max(rowRightEdge.get(box.row) ?? 0, right))
   }
+  const blockWidth = Math.max(...rowRightEdge.values())
+  const blockHeight = result.containerHeight
 
+  // Uniform scale to the largest size that fits the page. Aspect ratio is
+  // preserved, so cover never crops; the non-binding axis gets centered slack.
+  const scale = Math.min(contentWidth / blockWidth, availableHeight / blockHeight)
+  const offsetY = (availableHeight - blockHeight * scale) / 2
+
+  // Each row is centered horizontally: full rows fill the width (offset 0),
+  // partial rows (e.g. one orphan photo) shift to the horizontal center.
   return result.boxes.map((box, i) => {
-    const rowWidth = rowRightEdge.get(box.row) ?? contentWidth
-    const centerOffset = (contentWidth - rowWidth) / 2
+    const rowWidth = rowRightEdge.get(box.row) ?? blockWidth
+    const offsetX = (contentWidth - rowWidth * scale) / 2
     return {
       photo: photos[i],
-      left: box.left + centerOffset,
-      top: box.top * yScale,
-      width: box.width,
-      height: box.height * yScale,
+      left: box.left * scale + offsetX,
+      top: box.top * scale + offsetY,
+      width: box.width * scale,
+      height: box.height * scale,
     }
   })
 }
@@ -186,7 +238,7 @@ function scalePageToFill(photos: ClassifiedPhoto[], availableHeight: number): Ph
  * 1. Sort photos by aspect ratio.
  * 2. Build a global strip at fullPageHeight/2 to get the full row structure.
  * 3. Distribute rows evenly across P = ceil(R/2) pages.
- * 4. Scale each page to fill with scalePageToFill().
+ * 4. Fit each page's photos with scalePageToFill() — uniform scale, no crop.
  */
 export function packChapterPages(
   chapter: Chapter,

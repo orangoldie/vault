@@ -12,6 +12,7 @@ import type { Chapter } from "@/types/trip"
 import { cn } from "@/lib/utils"
 
 import { createGlobeStyle } from "../lib/globe-style"
+import { GLOBE_FRAME_MAX, useGlobeFit } from "../lib/globe-fit"
 import { CompassRose } from "./compass-rose"
 import { GlobeOverlay } from "./globe-overlay"
 
@@ -33,8 +34,10 @@ interface TripGlobeProps {
   mapStyle?: maplibregl.StyleSpecification
 }
 
+// Internal layout always renders at full size; the wrapper is CSS-scaled to
+// fit the available gutter (see useGlobeFit / globe-fit.ts).
+const FRAME_SIZE = GLOBE_FRAME_MAX
 const GLOBE_SIZE = 280
-const FRAME_SIZE = 340
 const GLOBE_OFFSET = (FRAME_SIZE - GLOBE_SIZE) / 2
 
 export function TripGlobe({
@@ -49,6 +52,7 @@ export function TripGlobe({
   const [expanded, setExpanded] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const [mapReady, setMapReady] = useState(false)
+  const fit = useGlobeFit()
 
   useEffect(() => {
     ensureProtocol()
@@ -126,11 +130,11 @@ export function TripGlobe({
     return () => window.removeEventListener("scroll", handleScroll)
   }, [activeIndex, chapters, prefersReducedMotion])
 
-  // Pause/resume render loop based on visibility
+  // Pause/resume render loop based on visibility and whether the globe has room
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
     const map = mapRef.current
-    if (visible) {
+    if (visible && fit.show) {
       map.resize()
       map.triggerRepaint()
       // Re-center on the active chapter in case it changed while hidden
@@ -145,7 +149,7 @@ export function TripGlobe({
     } else {
       map.stop()
     }
-  }, [mapReady, visible, activeIndex, chapters, prefersReducedMotion])
+  }, [mapReady, visible, fit.show, activeIndex, chapters, prefersReducedMotion])
 
   const handleLoad = useCallback((e: maplibregl.MapLibreEvent) => {
     const map = e.target
@@ -184,16 +188,22 @@ export function TripGlobe({
 
   return (
     <>
-      {/* Desktop mini globe — bottom-right corner, always mounted to preserve map state */}
+      {/* Desktop mini globe — right edge, vertically centered. Always mounted
+          (while it has room) to preserve map state. Sized to fit the gutter
+          beside the content column via CSS scale; see globe-fit.ts. */}
       <div
         className={cn(
-          "fixed top-1/2 z-30 hidden -translate-y-1/2 transition-all min-[1500px]:block",
-          prefersReducedMotion ? "duration-0" : "duration-300",
-          visible
-            ? "pointer-events-auto scale-100 opacity-100"
-            : "pointer-events-none scale-[0.8] opacity-0"
+          "fixed top-1/2 z-30 transition-all",
+          prefersReducedMotion ? "duration-0" : "duration-300"
         )}
-        style={{ right: "calc(1rem + var(--scrollbar-width, 0px))" }}
+        style={{
+          right: "calc(1rem + var(--scrollbar-width, 0px))",
+          display: fit.show ? "block" : "none",
+          transformOrigin: "right center",
+          transform: `translateY(-50%) scale(${(visible ? 1 : 0.8) * fit.scale})`,
+          opacity: visible ? 1 : 0,
+          pointerEvents: visible ? "auto" : "none",
+        }}
       >
         <div
           className="group relative"
@@ -282,9 +292,9 @@ export function TripGlobe({
         </div>
       </div>
 
-      {/* Mobile FAB — visible on small screens */}
+      {/* Mobile FAB — shown when the desktop globe has no room for itself */}
       <AnimatePresence>
-        {visible && (
+        {visible && !fit.show && (
           <motion.button
             initial={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -292,7 +302,7 @@ export function TripGlobe({
             transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
             onClick={handleExpand}
             className={cn(
-              "fixed bottom-20 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg min-[1500px]:hidden",
+              "fixed bottom-20 z-30 flex h-11 w-11 items-center justify-center rounded-full shadow-lg",
               "bg-vault-surface text-vault-gold ring-1 ring-vault-gold/20",
               "transition-colors hover:bg-vault-gold hover:text-white"
             )}

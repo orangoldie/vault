@@ -101,13 +101,7 @@ export function ExportProgressDialog({
           transition={{ duration: 0.15 }}
         >
           {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => {
-              if (isProcessing) onCancel()
-              else onClose()
-            }}
-          />
+          <div className="absolute inset-0 bg-black/50" />
 
           {/* Panel */}
           <motion.div

@@ -167,11 +167,7 @@ export function GlobeOverlay({
     [chapters, onNavigate, onClose]
   )
 
-  const handleBackdropClick = useCallback(() => {
-    onClose()
-  }, [onClose])
-
-  const activeChapter = chapters[activeIndex]
+const activeChapter = chapters[activeIndex]
   const highlightedIndex = selectedIndex ?? activeIndex
 
   if (typeof document === "undefined") return null
@@ -185,7 +181,7 @@ export function GlobeOverlay({
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
         role="dialog"
         aria-label="Trip globe view"
-        onClick={handleBackdropClick}
+
       >
         {/* Living star constellation backdrop */}
         <GlobeStarfield className="pointer-events-none absolute inset-0 z-0" />

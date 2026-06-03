@@ -13,6 +13,7 @@ interface FormValues {
   rating: number
   impression: string
   issues: string
+  siteName: string
   recommend: Recommend | null
   price: PriceRange | null
   email: string
@@ -24,6 +25,7 @@ const EMPTY_FORM: FormValues = {
   rating: 0,
   impression: "",
   issues: "",
+  siteName: "",
   recommend: null,
   price: null,
   email: "",
@@ -60,6 +62,7 @@ export function FeedbackButton() {
           rating: values.rating > 0 ? `${values.rating}/5` : "—",
           impression: values.impression || "—",
           issues: values.issues || "—",
+          site_name: values.siteName || "—",
           recommend: values.recommend ?? "—",
           price: values.price ?? "—",
           notify_email: values.email || "—",
@@ -200,7 +203,22 @@ export function FeedbackButton() {
                       />
                     </div>
 
-                    {/* Q4 — Recommend */}
+                    {/* Q4 — Site name */}
+                    <div className="space-y-2">
+                      <label htmlFor="fb-site-name" className="text-xs font-medium uppercase tracking-[0.1em] text-vault-gold/70">
+                        What would you call this website?
+                      </label>
+                      <input
+                        id="fb-site-name"
+                        type="text"
+                        placeholder="Type your idea here…"
+                        value={values.siteName}
+                        onChange={(e) => set("siteName", e.target.value)}
+                        className={INPUT_CLASS}
+                      />
+                    </div>
+
+                    {/* Q5 — Recommend */}
                     <div className="space-y-2">
                       <p className="text-xs font-medium uppercase tracking-[0.1em] text-vault-gold/70">
                         Would you recommend this?

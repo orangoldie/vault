@@ -7,12 +7,25 @@ import { type FontMetrics, measureParagraphLineCount, twoColumnCapacity } from "
 
 const t = pdfTheme
 
+/**
+ * Minimum leftover height (pt) on a final text-continuation page worth filling
+ * with photos. Below this the orphan text already consumes most of the page, so
+ * photos would be cramped — we leave that page text-only and emit photos on their
+ * own full-height pages instead. ~35% of the page leaves room for a downscaled row.
+ */
+const minCombinePhotoHeight = fullPageHeight * 0.35
+
 // ── Text height measurement ─────────────────────────────────
 
 export interface ChapterTextMetrics {
+  /** Height (pt) the chapter header occupies on the opener, photos start below it. */
   headerHeight: number
   useTwoColumns: boolean
   hasTextContinuation: boolean
+  /**
+   * Height (pt) of the text on the final continuation page (the taller column).
+   * Photos may fill the full-width strip beneath it; 0 when there's no continuation.
+   */
   lastContinuationHeight: number
 }
 
@@ -48,9 +61,12 @@ export function measureChapterText(
         t.lineHeights.body,
       )
       hasTextContinuation = totalLines > 2 * maxLinesFirstPage
+      // The renderer fills column 1 to capacity before spilling into column 2, so
+      // column 1 is always the taller column; its height bounds the text block.
+      // (Not ceil(totalLines/2) — the columns are greedy, not balanced.)
       const effectiveLines = hasTextContinuation
         ? maxLinesFirstPage
-        : Math.ceil(totalLines / 2)
+        : Math.min(totalLines, maxLinesFirstPage)
       descHeight = effectiveLines * renderedLineHeight + descriptionMarginTop
 
       if (hasTextContinuation) {
@@ -91,6 +107,10 @@ export interface PageContent {
     textHeight: number
     useTwoColumns: boolean
   }
+  /**
+   * Set on a photo page that combines onto the last text-continuation page: its
+   * photos render in a full-width strip below the continuation text.
+   */
   continuationTextHeight?: number
   photos: PhotoBox[]
 }
@@ -153,7 +173,11 @@ function blockBounds(layout: Layout): { width: number; height: number } {
  * block keeps photos bigger. The maximum lands on the block height nearest the
  * page height, with overshoot gently penalised by s².
  */
-function selectBestLayout(aspectRatios: number[], availableHeight: number): Layout {
+function selectBestLayout(
+  aspectRatios: number[],
+  availableHeight: number,
+  containerWidth: number,
+): Layout {
   const STEPS = 48
   const minTarget = 40
   let best: Layout | null = null
@@ -162,13 +186,13 @@ function selectBestLayout(aspectRatios: number[], availableHeight: number): Layo
   for (let i = 0; i <= STEPS; i++) {
     const target = minTarget + ((availableHeight - minTarget) * i) / STEPS
     const layout = justifiedLayout(aspectRatios, {
-      containerWidth: contentWidth,
+      containerWidth,
       boxSpacing: t.spacing.photoGutter,
       targetRowHeight: target,
     })
     const { width, height } = blockBounds(layout)
     const naturalArea = layout.boxes.reduce((sum, b) => sum + b.width * b.height, 0)
-    const s = Math.min(contentWidth / width, availableHeight / height)
+    const s = Math.min(containerWidth / width, availableHeight / height)
     const score = s * s * naturalArea
     if (score > bestScore) {
       bestScore = score
@@ -188,13 +212,22 @@ function selectBestLayout(aspectRatios: number[], availableHeight: number): Layo
  * preferred over an exact-fit lopsided one. Over-tall blocks (a single portrait is
  * always taller than a landscape page) pillarbox; whichever axis binds, the other
  * is centered. Scaling is uniform in both directions, so nothing is ever cropped.
+ *
+ * `alignTop` pins the block to the top of the region instead of centering it
+ * vertically — used for a strip beneath text, where photos should hug the text
+ * (any slack falls to the page bottom) rather than float in a centered gap.
  */
-function scalePageToFill(photos: ClassifiedPhoto[], availableHeight: number): PhotoBox[] {
+function scalePageToFill(
+  photos: ClassifiedPhoto[],
+  availableHeight: number,
+  availableWidth: number = contentWidth,
+  alignTop: boolean = false,
+): PhotoBox[] {
   if (photos.length === 0) return []
 
   const aspectRatios = photos.map((p) => p.width / p.height)
 
-  const result = selectBestLayout(aspectRatios, availableHeight)
+  const result = selectBestLayout(aspectRatios, availableHeight, availableWidth)
 
   // Bounding box of the laid-out block: widest row × stacked height.
   const rowRightEdge = new Map<number, number>()
@@ -207,14 +240,14 @@ function scalePageToFill(photos: ClassifiedPhoto[], availableHeight: number): Ph
 
   // Uniform scale to the largest size that fits the page. Aspect ratio is
   // preserved, so cover never crops; the non-binding axis gets centered slack.
-  const scale = Math.min(contentWidth / blockWidth, availableHeight / blockHeight)
-  const offsetY = (availableHeight - blockHeight * scale) / 2
+  const scale = Math.min(availableWidth / blockWidth, availableHeight / blockHeight)
+  const offsetY = alignTop ? 0 : (availableHeight - blockHeight * scale) / 2
 
   // Each row is centered horizontally: full rows fill the width (offset 0),
   // partial rows (e.g. one orphan photo) shift to the horizontal center.
   return result.boxes.map((box, i) => {
     const rowWidth = rowRightEdge.get(box.row) ?? blockWidth
-    const offsetX = (contentWidth - rowWidth * scale) / 2
+    const offsetX = (availableWidth - rowWidth * scale) / 2
     return {
       photo: photos[i],
       left: box.left * scale + offsetX,
@@ -230,15 +263,18 @@ function scalePageToFill(photos: ClassifiedPhoto[], availableHeight: number): Ph
 /**
  * Pack a chapter's photos into pages.
  *
- * Text and photos are fully separated: the chapter header always occupies its
- * own page, and photo pages are all full-height. This keeps the photo layout
- * algorithm clean — no reduced-height first pages, no text/photo mixing.
+ * One combine rule keeps this simple: photos may fill a full-width strip below the
+ * text on the chapter opener or on the last text-continuation page; every other
+ * photo lands on its own full-height page. Leftover space beside tall text is left
+ * as whitespace by design — no per-column packing.
  *
- * Algorithm for photo pages:
+ * Algorithm:
  * 1. Sort photos by aspect ratio.
  * 2. Build a global strip at fullPageHeight/2 to get the full row structure.
- * 3. Distribute rows evenly across P = ceil(R/2) pages.
- * 4. Fit each page's photos with scalePageToFill() — uniform scale, no crop.
+ * 3. Fill the below-text strip (opener or last continuation page) with the first
+ *    row(s), when its leftover height is worth it.
+ * 4. Distribute the remaining rows evenly across P = ceil(R/2) full-height pages.
+ * 5. Fit each page's photos with scalePageToFill() — uniform scale, no crop.
  */
 export function packChapterPages(
   chapter: Chapter,
@@ -268,8 +304,61 @@ export function packChapterPages(
   })
   const allRows = groupByRow(strip.boxes)
 
-  // Step 2: Distribute rows evenly — P = ceil(R / 2), targeting 2 rows per page
-  const R = allRows.length
+  const rowPhotos = (rowsToTake: RowInfo[]) =>
+    rowsToTake.flatMap((r) => r.indices.map((i) => sorted[i]))
+
+  // As many global rows as comfortably fit a leftover height (min 1, capped at
+  // what's left). The grouping is fixed by the strip; we only choose how many of
+  // those rows land on a partial-height page.
+  const fitRowCount = (availableHeight: number, available: number) =>
+    Math.min(Math.max(1, Math.round(availableHeight / (fullPageHeight / 2))), available)
+
+  // Take the leading row(s) for a full-width strip beneath text. The photos hug
+  // the text (top-aligned) so any slack falls to the page bottom rather than
+  // floating in a centered gap. When the strip already holds 2+ rows, a lone
+  // trailing row folds in to avoid stranding it on a sparse full page; on a
+  // near-minimum strip (take === 1) that extra row would be cramped, so let it
+  // spill to its own page instead. scalePageToFill downscales to fit, never crops.
+  const fillStrip = (height: number, available: RowInfo[]) => {
+    let take = fitRowCount(height, available.length)
+    if (take >= 2 && available.length - take === 1) take = available.length
+    return {
+      take,
+      photos: scalePageToFill(rowPhotos(available.slice(0, take)), height, contentWidth, true),
+    }
+  }
+
+  // Step 2: a single combine rule — a full-width photo strip below the text, on
+  // the opener or on the last text-continuation page, whenever the leftover height
+  // is worth it. Everything else stays on full-height photo pages. (No per-column
+  // packing: leftover beside tall text is left as whitespace, by design.)
+  let rows = allRows
+  if (!textMetrics.hasTextContinuation) {
+    // Opener: photos fill the strip below the header (title + any description).
+    const belowHeight = fullPageHeight - textMetrics.headerHeight
+    if (belowHeight >= minCombinePhotoHeight) {
+      const filled = fillStrip(belowHeight, rows)
+      pages[0].photos = filled.photos
+      rows = rows.slice(filled.take)
+    }
+  } else if (textMetrics.lastContinuationHeight > 0) {
+    // Last continuation page: photos fill the strip below its (shorter) text.
+    const belowHeight =
+      fullPageHeight - textMetrics.lastContinuationHeight - t.spacing.textToPhotos
+    if (belowHeight >= minCombinePhotoHeight) {
+      const filled = fillStrip(belowHeight, rows)
+      pages.push({
+        photos: filled.photos,
+        continuationTextHeight: textMetrics.lastContinuationHeight,
+      })
+      rows = rows.slice(filled.take)
+    }
+  }
+
+  if (rows.length === 0) return pages
+
+  // Step 3: Distribute remaining rows evenly — P = ceil(R / 2), 2 rows per page
+  const R = rows.length
   const pageCount = Math.ceil(R / 2)
   const baseRows = Math.floor(R / pageCount)
   const extraPages = R % pageCount
@@ -283,12 +372,10 @@ export function packChapterPages(
     rowsPerPage.pop()
   }
 
-  // Step 3: Emit one page per assignment
+  // Step 4: Emit one full-height page per assignment
   let cursor = 0
   for (const rowCount of rowsPerPage) {
-    const pagePhotos = allRows
-      .slice(cursor, cursor + rowCount)
-      .flatMap((r) => r.indices.map((i) => sorted[i]))
+    const pagePhotos = rowPhotos(rows.slice(cursor, cursor + rowCount))
     pages.push({ photos: scalePageToFill(pagePhotos, fullPageHeight) })
     cursor += rowCount
   }

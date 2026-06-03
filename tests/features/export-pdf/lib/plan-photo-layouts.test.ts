@@ -11,7 +11,7 @@ import {
   loadFontMetrics,
   measureLineCount,
 } from "@/features/export-pdf/lib/measure-text"
-import { pdfTheme } from "@/features/export-pdf/lib/pdf-theme"
+import { pdfTheme, fullPageHeight } from "@/features/export-pdf/lib/pdf-theme"
 import type { ClassifiedPhoto } from "@/features/export-pdf/lib/classify-photos"
 import type { Chapter } from "@/types/trip"
 
@@ -410,5 +410,213 @@ describe("acceptance criteria", () => {
     const min = Math.min(...counts)
     // Must never produce a 7+1 or similar extreme imbalance
     expect(max - min).toBeLessThanOrEqual(3)
+  })
+})
+
+// ── Continuation page filling ────────────────────────────────
+
+describe("packChapterPages — continuation page filling", () => {
+  const minCombineHeight = fullPageHeight * 0.35
+
+  /**
+   * Find a two-column continuation chapter whose final page leaves a below-text
+   * strip height within [minBelow, maxBelow].
+   */
+  function findContinuation(minBelow?: number, maxBelow?: number): string | null {
+    for (let words = 160; words <= 6000; words += 6) {
+      const candidate = Array(words).fill("travel").join(" ")
+      const m = measureChapterText(makeChapter({ description: candidate }), fontMetrics)
+      if (!m.useTwoColumns || !m.hasTextContinuation || m.lastContinuationHeight <= 0) continue
+      const below = fullPageHeight - m.lastContinuationHeight - pdfTheme.spacing.textToPhotos
+      if (minBelow !== undefined && below < minBelow) continue
+      if (maxBelow !== undefined && below > maxBelow) continue
+      return candidate
+    }
+    return null
+  }
+
+  it("fills a full-width strip below the text on the last continuation page", () => {
+    const description = findContinuation(minCombineHeight + 40)
+    expect(description).not.toBeNull()
+
+    const pages = packChapterPages(
+      makeChapter({ description: description! }),
+      makePhotos(Array(6).fill("landscape")),
+      fontMetrics,
+    )
+
+    expect(totalPhotosPlaced(pages)).toBe(6)
+    expect(pages[0].chapterHeader).toBeDefined()
+    expect(pages[0].photos).toHaveLength(0)
+
+    const combined = pages.filter((p) => p.continuationTextHeight !== undefined)
+    expect(combined).toHaveLength(1)
+    expect(combined[0].photos.length).toBeGreaterThan(0)
+
+    // Photos fit within the below-strip height.
+    const reserved =
+      fullPageHeight - combined[0].continuationTextHeight! - pdfTheme.spacing.textToPhotos
+    const maxBottom = Math.max(...combined[0].photos.map((b) => b.top + b.height))
+    expect(maxBottom).toBeLessThanOrEqual(reserved + 0.5)
+  })
+
+  it("leaves the last continuation page text-only when its text nearly fills it", () => {
+    // Text reaches near the page bottom → strip below is too small → no combine.
+    const description = findContinuation(undefined, minCombineHeight - 20)
+    if (description) {
+      const pages = packChapterPages(
+        makeChapter({ description }),
+        makePhotos(Array(6).fill("landscape")),
+        fontMetrics,
+      )
+      expect(totalPhotosPlaced(pages)).toBe(6)
+      expect(pages.every((p) => p.continuationTextHeight === undefined)).toBe(true)
+    }
+  })
+
+  it("is deterministic across runs", () => {
+    const description = findContinuation(minCombineHeight + 40)
+    expect(description).not.toBeNull()
+    const chapter = makeChapter({ description: description! })
+    const photos = makePhotos(Array(7).fill("portrait"))
+    const a = packChapterPages(chapter, photos, fontMetrics)
+    const b = packChapterPages(chapter, photos, fontMetrics)
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b))
+  })
+})
+
+// ── Opener filling ───────────────────────────────────────────
+
+describe("packChapterPages — opener filling", () => {
+  const minCombineHeight = fullPageHeight * 0.35
+
+  it("folds a lone trailing row onto the opener instead of a sparse page", () => {
+    // 6 landscapes, no description: the global strip yields 3 rows. The opener
+    // fits ~2, which would strand a single row on its own near-empty page. That
+    // row should fold back onto the opener (one clean page) rather than spill.
+    const chapter = makeChapter()
+    const photos = makePhotos(Array(6).fill("landscape"))
+    const pages = packChapterPages(chapter, photos, fontMetrics)
+
+    expect(totalPhotosPlaced(pages)).toBe(6)
+    expect(pages).toHaveLength(1)
+    expect(pages[0].chapterHeader).toBeDefined()
+    expect(pages[0].photos).toHaveLength(6)
+  })
+
+  it("never strands a single photo row on its own page after the opener", () => {
+    // Across photo counts, no opener-carve should leave a trailing page that
+    // holds just one justified row (the sparse-page regression).
+    for (const count of [3, 5, 6, 7, 9, 11]) {
+      const chapter = makeChapter()
+      const photos = makePhotos(Array(count).fill("landscape"))
+      const pages = packChapterPages(chapter, photos, fontMetrics)
+      expect(totalPhotosPlaced(pages)).toBe(count)
+
+      const photoPages = pages.filter((p) => p.photos.length > 0)
+      if (photoPages.length >= 2) {
+        const last = photoPages[photoPages.length - 1]
+        const rows = new Set(last.photos.map((b) => Math.round(b.top)))
+        // A trailing page with a single row AND very few photos is the sparse bug.
+        const isLoneSparseRow = rows.size === 1 && last.photos.length <= 2
+        expect(isLoneSparseRow).toBe(false)
+      }
+    }
+  })
+
+  /** Assert the header page carries photos that fit the strip below the text. */
+  function expectOpenerFilled(pages: PageContent[]) {
+    expect(pages[0].chapterHeader).toBeDefined()
+    expect(pages[0].photos.length).toBeGreaterThan(0)
+
+    const headerHeight = measureChapterText(
+      pages[0].chapterHeader!.chapter,
+      fontMetrics,
+    ).headerHeight
+    const reserved = fullPageHeight - headerHeight
+    const maxBottom = Math.max(...pages[0].photos.map((b) => b.top + b.height))
+    expect(maxBottom).toBeLessThanOrEqual(reserved + 0.5)
+  }
+
+  it("fills the opener when the chapter has no description", () => {
+    const chapter = makeChapter()
+    const photos = makePhotos(Array(6).fill("landscape"))
+    const pages = packChapterPages(chapter, photos, fontMetrics)
+
+    expect(totalPhotosPlaced(pages)).toBe(6)
+    expectOpenerFilled(pages)
+  })
+
+  it("fills the opener for a short single-column description", () => {
+    const chapter = makeChapter({ description: "A short day in the city." })
+    const metrics = measureChapterText(chapter, fontMetrics)
+    expect(metrics.useTwoColumns).toBe(false)
+    expect(metrics.hasTextContinuation).toBe(false)
+
+    const photos = makePhotos(Array(6).fill("landscape"))
+    const pages = packChapterPages(chapter, photos, fontMetrics)
+
+    expect(totalPhotosPlaced(pages)).toBe(6)
+    expectOpenerFilled(pages)
+  })
+
+  it("hugs the text: below-strip photos are top-aligned, not floating in a gap", () => {
+    // Two wide photos lay out as one short row that can't fill the tall strip
+    // beneath a short description, so centering would float them in a gap. They
+    // must sit at the top of the strip (directly beneath the text).
+    const chapter = makeChapter({ description: "A short day in the city." })
+    const metrics = measureChapterText(chapter, fontMetrics)
+    expect(metrics.useTwoColumns).toBe(false)
+    expect(metrics.hasTextContinuation).toBe(false)
+
+    const photos = makePhotos(Array(2).fill("landscape"))
+    const pages = packChapterPages(chapter, photos, fontMetrics)
+
+    expect(pages[0].photos.length).toBeGreaterThan(0)
+
+    // Top-aligned: the first row sits at the top of the strip. Centering these
+    // photos in the tall strip would push the block down by ~half the slack.
+    const minTop = Math.min(...pages[0].photos.map((b) => b.top))
+    const blockHeight =
+      Math.max(...pages[0].photos.map((b) => b.top + b.height)) - minTop
+    const belowHeight = fullPageHeight - metrics.headerHeight
+    const centeredOffset = (belowHeight - blockHeight) / 2
+    expect(centeredOffset).toBeGreaterThan(40) // sanity: this case would visibly center
+    expect(minTop).toBeLessThan(centeredOffset * 0.5)
+  })
+
+  it("does not fill a two-column opener (column 1 always too full for a strip)", () => {
+    // Two columns require >150 words, which fills column 1 past the strip
+    // threshold — so a two-column opener never carries a below-strip; its photos
+    // go on their own pages and the space below the text stays whitespace.
+    let description = ""
+    for (let words = 160; words <= 2000; words += 6) {
+      const candidate = Array(words).fill("travel").join(" ")
+      const m = measureChapterText(makeChapter({ description: candidate }), fontMetrics)
+      if (m.useTwoColumns && !m.hasTextContinuation
+          && fullPageHeight - m.headerHeight < minCombineHeight) {
+        description = candidate
+        break
+      }
+    }
+    expect(description).not.toBe("")
+
+    const chapter = makeChapter({ description })
+    const photos = makePhotos(Array(6).fill("landscape"))
+    const pages = packChapterPages(chapter, photos, fontMetrics)
+
+    expect(totalPhotosPlaced(pages)).toBe(6)
+    expect(pages[0].photos).toHaveLength(0)
+  })
+
+  it("keeps a single photo on one combined opener page", () => {
+    const chapter = makeChapter()
+    const photos = makePhotos(["landscape"])
+    const pages = packChapterPages(chapter, photos, fontMetrics)
+
+    expect(totalPhotosPlaced(pages)).toBe(1)
+    expect(pages).toHaveLength(1)
+    expect(pages[0].chapterHeader).toBeDefined()
+    expect(pages[0].photos).toHaveLength(1)
   })
 })

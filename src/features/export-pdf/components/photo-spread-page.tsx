@@ -155,7 +155,11 @@ interface ChapterHeaderProps {
   firstPageColumns?: [string[], string[]]
 }
 
-function ChapterHeader({ chapter, useTwoColumns, firstPageColumns }: ChapterHeaderProps) {
+function ChapterHeader({
+  chapter,
+  useTwoColumns,
+  firstPageColumns,
+}: ChapterHeaderProps) {
   const dateRange =
     chapter.endTime && chapter.endTime !== chapter.startTime
       ? formatDateRange(chapter.startTime, chapter.endTime)
@@ -393,6 +397,8 @@ export function TextContinuationPage({
   photos?: PhotoBox[]
   photoDataUrls?: (string | null)[]
 }) {
+  const hasPhotos = photos && photos.length > 0 && photoDataUrls
+
   const leftCol = isRtl ? col2 : col1
   const rightCol = isRtl ? col1 : col2
 
@@ -402,7 +408,7 @@ export function TextContinuationPage({
         <View style={styles.column}>{renderColumnLines(leftCol)}</View>
         <View style={styles.column}>{renderColumnLines(rightCol)}</View>
       </View>
-      {photos && photos.length > 0 && photoDataUrls && (
+      {hasPhotos && (
         <PhotoGrid
           photos={photos}
           dataUrls={photoDataUrls}

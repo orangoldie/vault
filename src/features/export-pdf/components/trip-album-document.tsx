@@ -70,7 +70,8 @@ export function TripAlbumDocument({
         if (hasContinuation) {
           const descRtl = detectDescriptionRtl(page.chapterHeader.chapter.description)
 
-          // Find the first deferred photo page that should combine with the last continuation page
+          // The planner places any combine-photo page immediately after the header
+          // page; it carries continuationTextHeight to mark the below-text strip.
           const nextPage = pageIndex + 1 < section.pages.length ? section.pages[pageIndex + 1] : null
           const combinePhotos = nextPage?.continuationTextHeight !== undefined
 
@@ -106,24 +107,8 @@ export function TripAlbumDocument({
             }
           }
 
-          // Skip the combined page in the outer loop so it isn't emitted twice
-          if (combinePhotos) {
-            // Skip the next page in the outer loop since we already consumed it
-            pageIndex++
-          }
-
-          // If we didn't combine and there are deferred photos, emit them
-          if (!combinePhotos && page.photos.length > 0) {
-            contentPages.push(
-              <ContentPage
-                key={`cp-${globalPageIdx++}`}
-                photos={page.photos}
-                photoDataUrls={page.photos.map(
-                  (box) => section.dataUrlsByFilename.get(box.photo.filename) ?? null
-                )}
-              />
-            )
-          }
+          // The combine page was consumed above; skip it in the outer loop.
+          if (combinePhotos) pageIndex++
         }
       } else {
         contentPages.push(

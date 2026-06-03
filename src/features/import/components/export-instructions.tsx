@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Smartphone, Mail, Upload, ExternalLink } from "lucide-react"
+import { Monitor, Mail, Upload, ExternalLink } from "lucide-react"
 import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
@@ -95,7 +95,7 @@ export function ExportInstructions({ onFileSelected }: ExportInstructionsProps) 
               variants={iconVariants}
               className="flex size-10 shrink-0 items-center justify-center rounded-full border border-vault-gold/25 bg-vault-gold/[0.06]"
             >
-              <Smartphone className="size-4 text-vault-gold/70" strokeWidth={1.5} />
+              <Monitor className="size-4 text-vault-gold/70" strokeWidth={1.5} />
             </motion.div>
             <motion.div
               variants={lineVariants}
@@ -108,7 +108,16 @@ export function ExportInstructions({ onFileSelected }: ExportInstructionsProps) 
               Request your export
             </h3>
             <p className="mt-1.5 text-base leading-relaxed text-vault-text-dim">
-              Open the Polarsteps app, go to your account settings, and request a copy of your data.
+              Log in at{" "}
+              <a
+                href="https://www.polarsteps.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-vault-gold/80 underline underline-offset-2 transition-colors hover:text-vault-gold"
+              >
+                polarsteps.com
+              </a>{" "}
+              using a laptop or computer, go to your account settings, and request a copy of your data.
             </p>
             <a
               href={EXPORT_GUIDE_URL}
